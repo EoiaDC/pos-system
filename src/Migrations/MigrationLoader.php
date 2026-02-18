@@ -1,46 +1,24 @@
 <?php
-namespace Pos\Migrations;
 
 class MigrationLoader
 {
-    private string $migrationPath;
-    
-    public function __construct()
+    public function listMigrationFiles(string $path): array
     {
-        $this->migrationPath = __DIR__ . '/../../migrations/';
-    }
-    
-    public function getAllMigrations(): array
-    {
-        $files = glob($this->migrationPath . '*.php');
-        $files = array_map(function($file) {
-            return basename($file);
-        }, $files);
-        
+        $files = glob($path . '/*.php');
         sort($files);
         return $files;
     }
     
-    public function loadMigration(string $filename): array
+    public function load(string $filePath): array
     {
-        $path = $this->migrationPath . $filename;
-        
-        if (!file_exists($path)) {
-            throw new \Exception("Migration file not found: {$filename}");
+        if (!file_exists($filePath)) {
+            throw new Exception("Migration file not found: $filePath");
         }
         
-        $migration = require $path;
+        $migration = require $filePath;
         
-        if (!is_array($migration) || !isset($migration['up']) || !is_callable($migration['up'])) {
-            throw new \Exception("Invalid migration format: {$filename} - must return array with 'up' function");
-        }
-        
-        // Add down placeholder if missing
-        if (!isset($migration['down']) || !is_callable($migration['down'])) {
-            $migration['down'] = function() {
-                // Placeholder - no rollback yet
-                return true;
-            };
+        if (!is_array($migration) || !isset($migration['up'])) {
+            throw new Exception("Invalid migration format in: $filePath");
         }
         
         return $migration;

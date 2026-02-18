@@ -31,4 +31,43 @@ class DB
         
         return self::$connection;
     }
+    
+    public static function execute(string $sql, array $params = []): bool
+    {
+        $pdo = self::connect();
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute($params);
+    }
+    
+    public static function fetch(string $sql, array $params = []): ?array
+    {
+        $pdo = self::connect();
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $result ?: null;
+    }
+    
+    public static function fetchAll(string $sql, array $params = []): array
+    {
+        $pdo = self::connect();
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+    
+    public static function transaction(callable $callback)
+    {
+        $pdo = self::connect();
+        
+        try {
+            $pdo->beginTransaction();
+            $result = $callback();
+            $pdo->commit();
+            return $result;
+        } catch (\Exception $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
 }

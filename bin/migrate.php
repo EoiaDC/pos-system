@@ -1,86 +1,49 @@
 #!/usr/bin/env php
 <?php
-/**
- * PH POS System - Migration Runner CLI
- * Usage: php bin/migrate.php [command]
- * Commands: migrate, status, dry-run, help
- */
+/** @disregard P1009 This is a CLI file */
 
-// Autoloader (simple for now)
-spl_autoload_register(function ($class) {
-    $prefix = 'App\\';
-    $base_dir = __DIR__ . '/../app/';
-    
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-    
-    $relative_class = substr($class, $len);
-    $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
-    
-    if (file_exists($file)) {
-        require $file;
-    }
-});
+require_once __DIR__ . '/../src/Database/DB.php';
+require_once __DIR__ . '/../src/Migrations/MigrationLoader.php';
+require_once __DIR__ . '/../src/Migrations/Migrator.php';
 
-use App\Core\Database;
-use App\Core\Migrator;
+// ... rest of your code
 
 // Parse command line arguments
 $command = $argv[1] ?? 'migrate';
-$validCommands = ['migrate', 'status', 'dry-run', 'help'];
 
-if (!in_array($command, $validCommands)) {
-    echo "Unknown command: {$command}\n";
-    echo "Usage: php bin/migrate.php [migrate|status|dry-run|help]\n";
-    exit(1);
-}
-
-if ($command === 'help') {
-    echo "\nPH POS System - Database Migration Tool\n";
-    echo "========================================\n\n";
-    echo "Commands:\n";
-    echo "  migrate   - Run pending migrations (default)\n";
-    echo "  status    - Show current migration status\n";
-    echo "  dry-run   - Preview what would be run without executing\n";
-    echo "  help      - Show this help message\n\n";
-    echo "Examples:\n";
-    echo "  php bin/migrate.php\n";
-    echo "  php bin/migrate.php status\n";
-    echo "  php bin/migrate.php dry-run\n\n";
-    exit(0);
-}
+echo "\n🚀 PH POS Migration Tool\n";
+echo "========================\n\n";
 
 try {
-    echo "\n🚀 PH POS System - Migration Tool\n";
-    echo "================================\n\n";
-    
-    $db = new Database();
-    $migrator = new Migrator($db);
+    $migrator = new Migrator(__DIR__ . '/../migrations');
     
     switch ($command) {
         case 'status':
-            $migrator->showStatus(false);
-            break;
-            
-        case 'dry-run':
-            $migrator->showStatus(true);
+            // Show migration status
+            $rows = DB::fetchAll("SELECT filename, batch, applied_at FROM schema_migrations ORDER BY applied_at");
+            echo "Applied migrations:\n";
+            foreach ($rows as $row) {
+                echo "  ✓ {$row['filename']} (batch {$row['batch']})\n";
+            }
             break;
             
         case 'migrate':
-            $migrator->migrate(false);
+        default:
+            $result = $migrator->up();
+            if (empty($result)) {
+                echo "No migrations to apply.\n";
+            } else {
+                echo "Applied migrations:\n";
+                foreach ($result as $migration) {
+                    echo "  ✓ $migration\n";
+                }
+            }
             break;
     }
     
-    // Display all output
-    foreach ($migrator->getOutput() as $line) {
-        echo $line . "\n";
-    }
+    echo "\n✅ Done.\n";
     
-    echo "\n✨ Done.\n\n";
-    
-} catch (\Exception $e) {
-    echo "\n❌ Error: " . $e->getMessage() . "\n\n";
+} catch (Exception $e) {
+    echo "❌ Error: " . $e->getMessage() . "\n";
     exit(1);
 }

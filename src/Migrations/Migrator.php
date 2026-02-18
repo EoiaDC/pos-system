@@ -1,103 +1,79 @@
 <?php
-namespace Pos\Migrations;
 
+require_once __DIR__ . '/../Database/DB.php';
+require_once __DIR__ . '/MigrationLoader.php';
+
+// Add this use statement
 use Pos\Database\DB;
 
 class Migrator
 {
-    private \PDO $pdo;
-    private MigrationLoader $loader;
-    private array $report = [];
-    
-    public function __construct()
+    private string $migrationsPath;
+
+    public function __construct(string $migrationsPath)
     {
-        $this->pdo = DB::connect();
-        $this->loader = new MigrationLoader();
-        $this->ensureMigrationTableExists();
+        $this->migrationsPath = $migrationsPath;
     }
-    
-    private function ensureMigrationTableExists(): void
+
+    public function ensureMigrationsTable(): void
     {
-        $sql = "
-            CREATE TABLE IF NOT EXISTS `schema_migrations` (
-                `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                `filename` VARCHAR(255) NOT NULL UNIQUE,
-                `batch` INT NOT NULL,
-                `applied_at` DATETIME NOT NULL,
-                INDEX `idx_batch` (`batch`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        ";
-        
-        $this->pdo->exec($sql);
+        DB::execute("
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                filename VARCHAR(255) NOT NULL UNIQUE,
+                batch INT NOT NULL,
+                applied_at DATETIME NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
     }
-    
-    public function getAppliedMigrations(): array
+
+    private function nextBatch(): int
     {
-        $stmt = $this->pdo->query("SELECT filename FROM schema_migrations ORDER BY filename");
-        return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+        $row = DB::fetch("SELECT MAX(batch) AS max_batch FROM schema_migrations");
+        $max = $row && $row['max_batch'] !== null ? (int)$row['max_batch'] : 0;
+        return $max + 1;
     }
-    
-    private function getNextBatchNumber(): int
+
+    private function appliedFilenames(): array
     {
-        $stmt = $this->pdo->query("SELECT COALESCE(MAX(batch), 0) + 1 FROM schema_migrations");
-        return (int) $stmt->fetchColumn();
+        $rows = DB::fetchAll("SELECT filename FROM schema_migrations");
+        $set = [];
+        foreach ($rows as $r) $set[$r['filename']] = true;
+        return $set;
     }
-    
-    public function getPendingMigrations(): array
-    {
-        $applied = $this->getAppliedMigrations();
-        $all = $this->loader->getAllMigrations();
-        
-        return array_values(array_diff($all, $applied));
-    }
-    
+
     public function up(): array
-{
-    $this->report = [
-        'applied' => [],
-        'skipped' => [],
-        'errors' => []
-    ];
-    
-    $pending = $this->getPendingMigrations();
-    
-    if (empty($pending)) {
-        $this->report['message'] = 'No pending migrations to apply.';
-        return $this->report;
-    }
-    
-    $batch = $this->getNextBatchNumber();
-    $now = date('Y-m-d H:i:s');
-    
-    foreach ($pending as $filename) {
-        try {
-            $migration = $this->loader->loadMigration($filename);
-            
-            // Execute the up function (no transaction for now)
-            $result = $migration['up']($this->pdo);
-            
-            // Record the migration
-            $stmt = $this->pdo->prepare(
-                "INSERT INTO schema_migrations (filename, batch, applied_at) 
-                 VALUES (?, ?, ?)"
-            );
-            $stmt->execute([$filename, $batch, $now]);
-            
-            $this->report['applied'][] = [
-                'filename' => $filename,
-                'batch' => $batch,
-                'applied_at' => $now
-            ];
-            
-        } catch (\Exception $e) {
-            $this->report['errors'][] = [
-                'filename' => $filename,
-                'error' => $e->getMessage()
-            ];
-            break;
+    {
+        $this->ensureMigrationsTable();
+
+        $loader = new MigrationLoader();
+        $files = $loader->listMigrationFiles($this->migrationsPath);
+
+        $applied = $this->appliedFilenames();
+        $batch = $this->nextBatch();
+
+        $appliedNow = [];
+
+        foreach ($files as $filePath) {
+            $filename = basename($filePath);
+            if (isset($applied[$filename])) continue;
+
+            $migration = $loader->load($filePath);
+
+            DB::transaction(function () use ($migration, $filename, $batch, &$appliedNow) {
+                // run up
+                $migration['up']();
+
+                // record
+                DB::execute(
+                    "INSERT INTO schema_migrations (filename, batch, applied_at) VALUES (?, ?, ?)",
+                    [$filename, $batch, date('Y-m-d H:i:s')]
+                );
+
+                $appliedNow[] = $filename;
+            });
         }
+
+        return $appliedNow;
     }
-    
-    return $this->report;
-}
 }
