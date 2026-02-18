@@ -5,6 +5,6 @@ return [
     'port' => '3306',
     'name' => 'pos_integration',
     'user' => 'pos_user',
-    'pass' => '',  // ADD YOUR PASSWORD HERE
+    'pass' => 'secure_password_here',  // ADD YOUR PASSWORD HERE
     'charset' => 'utf8mb4',
 ];
