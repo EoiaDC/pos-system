@@ -1,5 +1,10 @@
 <?php
 
+namespace POS\Database;
+
+use PDO;
+use PDOStatement;
+
 class DB
 {
     public static function query(string $sql, array $params = []): PDOStatement
