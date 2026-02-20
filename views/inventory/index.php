@@ -40,6 +40,18 @@
             border-radius: 3px;
         }
 
+        li a {
+            text-decoration: none;
+            color: #0066cc;
+            display: block;
+            font-weight: bold;
+        }
+
+        li a:hover {
+            color: #004499;
+            text-decoration: underline;
+        }
+
         .note {
             color: #666;
             font-style: italic;
@@ -55,11 +67,11 @@
         <h1>📦 Inventory Module</h1>
 
         <div class="placeholder">
-            <h2>Placeholder Content</h2>
+            <h2>Management Pages</h2>
             <ul>
-                <li>📝 Items</li>
-                <li>📁 Categories</li>
-                <li>⚖️ Units of Measure</li>
+                <li><a href="/inventory/items">📝 Items</a></li>
+                <li><a href="/inventory/categories">📁 Categories</a></li>
+                <li><a href="/inventory/uom">⚖️ Units of Measure</a></li>
             </ul>
         </div>
 
