@@ -38,6 +38,17 @@
             border-radius: 6px;
             text-align: center;
             border: 1px solid #45475a;
+            transition: transform 0.2s, border-color 0.2s;
+            cursor: pointer;
+        }
+        .module-card:hover {
+            transform: translateY(-2px);
+            border-color: #89b4fa;
+        }
+        .module-card a {
+            text-decoration: none;
+            color: inherit;
+            display: block;
         }
         .module-card h3 {
             color: #94e2d5;
@@ -67,15 +78,19 @@
         
         <div class="modules">
             <div class="module-card">
-                <h3>📋 Suppliers</h3>
-                <p>Manage supplier information</p>
-                <span class="badge">Coming Soon</span>
+                <a href="/purchasing/suppliers">
+                    <h3>📋 Suppliers</h3>
+                    <p>Manage supplier information</p>
+                    <span class="badge">Placeholder</span>
+                </a>
             </div>
             
             <div class="module-card">
-                <h3>📦 Purchase Orders</h3>
-                <p>Create and manage POs</p>
-                <span class="badge">Coming Soon</span>
+                <a href="/purchasing/purchase-orders">
+                    <h3>📦 Purchase Orders</h3>
+                    <p>Create and manage POs</p>
+                    <span class="badge">Placeholder</span>
+                </a>
             </div>
             
             <div class="module-card">
