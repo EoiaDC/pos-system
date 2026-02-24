@@ -33,4 +33,9 @@ class DB
         $stmt = self::query($sql, $params);
         return $stmt->rowCount();
     }
+
+    public static function lastInsertId(): string
+    {
+        return Connection::pdo()->lastInsertId();
+    }
 }
