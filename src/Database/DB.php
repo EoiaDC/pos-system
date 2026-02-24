@@ -9,12 +9,14 @@ class DB
     {
         if (self::$connection === null) {
             $host = 'localhost';
+            $port = '3307';  // ADD THIS LINE
             $dbname = 'pos_system';
             $username = 'root';
             $password = '';
             
             try {
-                $dsn = "mysql:host=$host;charset=utf8mb4";
+                // ADD port TO DSN
+                $dsn = "mysql:host=$host;port=$port;charset=utf8mb4";
                 $pdo = new \PDO($dsn, $username, $password);
                 $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
                 
@@ -70,4 +72,4 @@ class DB
             throw $e;
         }
     }
-}
+}   
