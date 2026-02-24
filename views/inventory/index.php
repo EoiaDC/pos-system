@@ -72,6 +72,8 @@
                 <li><a href="/inventory/items">📝 Items</a></li>
                 <li><a href="/inventory/categories">📁 Categories</a></li>
                 <li><a href="/inventory/uom">⚖️ Units of Measure</a></li>
+                <li><a href="/inventory/stock-movement">📊 Stock Movement</a></li>
+
             </ul>
         </div>
 
