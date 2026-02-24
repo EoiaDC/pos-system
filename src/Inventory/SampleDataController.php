@@ -21,13 +21,10 @@ class SampleDataController
         }
     }
 
-    private function showForm()
+    private function showForm($message = null, $error = null)
     {
-        // Get first category ID
-        $category = DB::fetch("SELECT id FROM categories LIMIT 1");
-        // Get first UOM ID
-        $uom = DB::fetch("SELECT id FROM units_of_measure LIMIT 1");
-
+        $category = DB::fetch("SELECT id, name FROM categories LIMIT 1");
+        $uom = DB::fetch("SELECT id, code FROM units_of_measure LIMIT 1");
         require __DIR__ . '/../../views/inventory/sample_data.php';
     }
 
@@ -45,16 +42,17 @@ class SampleDataController
             $sku = 'SAMPLE-' . date('Ymd') . '-' . rand(100, 999);
             $now = date('Y-m-d H:i:s');
 
+            // 9 placeholders for 9 columns
             $sql = "INSERT INTO items (
-                sku, name, category_id, uom_id, cost, price, 
+                sku, name, category_id, uom_id, cost, price,
                 taxable, is_active, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             DB::execute($sql, [
                 $sku,
                 'Sample Item ' . date('Y-m-d H:i:s'),
-                $category['id'],
-                $uom['id'],
+                (int)$category['id'],
+                (int)$uom['id'],
                 10.00,  // cost
                 19.99,  // price
                 1,      // taxable
@@ -64,18 +62,11 @@ class SampleDataController
 
             $itemId = DB::lastInsertId();
             $message = "✅ Sample item created successfully! Item ID: $itemId, SKU: $sku";
-            $this->showForm($message);
+            $this->showForm($message, null);
         } catch (Exception $e) {
             $error = "❌ Error: " . $e->getMessage();
             $this->showForm(null, $error);
         }
-    }
-
-    private function showForm($message = null, $error = null)
-    {
-        $category = DB::fetch("SELECT id, name FROM categories LIMIT 1");
-        $uom = DB::fetch("SELECT id, code FROM units_of_measure LIMIT 1");
-        require __DIR__ . '/../../views/inventory/sample_data.php';
     }
 }
 
