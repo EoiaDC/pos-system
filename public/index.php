@@ -40,7 +40,6 @@ require __DIR__ . '/../src/Audit/Auditor.php';
 use App\Core\Router;
 use App\Core\View;
 
-session_start();
 
 $router = new Router(); // Now works
 // ... rest of your code unchanged

@@ -94,9 +94,6 @@
     <div style="padding:16px;border-top:1px solid #ccc;font-size:12px;color:#666;">
         Core infrastructure skeleton (Day 1)
     </div>
-
-        <!-- Main content injected by router -->
-<?php echo $content ?? '<!-- content will appear here -->'; ?>
-    </div>
+</div>
 </body>
 </html>
