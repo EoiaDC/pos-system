@@ -1,28 +1,41 @@
 <?php
 
-require_once __DIR__ . '/../src/Database/Connection.php';
-require_once __DIR__ . '/../src/Database/DB.php';
+return new class
+{
+    public function up(PDO $db): void
+    {
+        $sql = "CREATE TABLE IF NOT EXISTS units_of_measure (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            code VARCHAR(10) NOT NULL UNIQUE,
+            name VARCHAR(50) NOT NULL,
+            description TEXT NULL,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        
+        $db->exec($sql);
+        
+        // Insert default units
+        $defaults = [
+            ['pc', 'Piece'],
+            ['kg', 'Kilogram'],
+            ['g', 'Gram'],
+            ['box', 'Box'],
+            ['pack', 'Pack'],
+            ['m', 'Meter'],
+            ['l', 'Liter'],
+            ['ml', 'Milliliter']
+        ];
+        
+        $stmt = $db->prepare("INSERT INTO units_of_measure (code, name) VALUES (?, ?)");
+        foreach ($defaults as $unit) {
+            $stmt->execute($unit);
+        }
+    }
 
-use POS\Database\Connection;
-use POS\Database\DB;
-
-$config = require __DIR__ . '/../config/database.php';
-Connection::loadConfig($config);
-
-$sql = "
-CREATE TABLE IF NOT EXISTS units_of_measure (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(20) UNIQUE NOT NULL,
-    name VARCHAR(50) NOT NULL,
-    is_active TINYINT(1) NOT NULL DEFAULT 1,
-    created_at DATETIME NOT NULL,
-    updated_at DATETIME NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-";
-
-try {
-    DB::execute($sql);
-    echo "✅ Migration successful: units_of_measure table created\n";
-} catch (Exception $e) {
-    echo "❌ Migration failed: " . $e->getMessage() . "\n";
-}
+    public function down(PDO $db): void
+    {
+        $db->exec("DROP TABLE IF EXISTS units_of_measure");
+    }
+};

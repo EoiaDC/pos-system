@@ -1,2 +1,35 @@
-﻿.env
-vendor/
+# Environment files - NEVER COMMIT
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+/vendor/
+composer.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swo
+*.swp
+*.DS_Store
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Logs
+/logs/*
+!logs/.gitkeep
+
+# Storage
+/storage/*
+!storage/.gitkeep
+
+# Test files (never commit)
+test_*.php
+*-test.php
+
+/storage/logs/*
+
+/storage/cache/*
