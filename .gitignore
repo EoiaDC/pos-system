@@ -1,9 +1,38 @@
-logs/ 
-.vscode/ 
-.DS_Store 
-Thumbs.db 
-composer.lock 
-/vendor/ 
-day1_complete.txt 
-verify_report.txt 
-*.log 
+# Environment files - NEVER COMMIT
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+/vendor/
+composer.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swo
+*.swp
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Logs
+/logs/*
+!logs/.gitkeep
+*.log
+
+# Storage
+/storage/*
+!storage/.gitkeep
+
+/storage/logs/*
+/storage/cache/*
+
+# Test files
+test_*.php
+*-test.php
+
+# Local development
+day1_complete.txt
+verify_report.txt
