@@ -1,41 +1,75 @@
 <?php
-
-namespace POS\Database;
-
-use PDO;
-use PDOStatement;
+namespace Pos\Database;
 
 class DB
 {
-    public static function query(string $sql, array $params = []): PDOStatement
+    private static ?\PDO $connection = null;
+    
+    public static function connect(): \PDO
     {
-        $pdo = Connection::pdo();
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        return $stmt;
+        if (self::$connection === null) {
+            $host = 'localhost';
+            $port = '3307';  // ADD THIS LINE
+            $dbname = 'pos_system';
+            $username = 'root';
+            $password = '';
+            
+            try {
+                // ADD port TO DSN
+                $dsn = "mysql:host=$host;port=$port;charset=utf8mb4";
+                $pdo = new \PDO($dsn, $username, $password);
+                $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+                
+                // Create database if not exists
+                $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbname` 
+                          CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                $pdo->exec("USE `$dbname`");
+                
+                self::$connection = $pdo;
+            } catch (\PDOException $e) {
+                die("Database connection failed: " . $e->getMessage());
+            }
+        }
+        
+        return self::$connection;
     }
-
+    
+    public static function execute(string $sql, array $params = []): bool
+    {
+        $pdo = self::connect();
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute($params);
+    }
+    
     public static function fetch(string $sql, array $params = []): ?array
     {
-        $stmt = self::query($sql, $params);
-        $result = $stmt->fetch();
-        return $result !== false ? $result : null;
+        $pdo = self::connect();
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $result ?: null;
     }
-
+    
     public static function fetchAll(string $sql, array $params = []): array
     {
-        $stmt = self::query($sql, $params);
-        return $stmt->fetchAll();
+        $pdo = self::connect();
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
-
-    public static function execute(string $sql, array $params = []): int
+    
+    public static function transaction(callable $callback)
     {
-        $stmt = self::query($sql, $params);
-        return $stmt->rowCount();
+        $pdo = self::connect();
+        
+        try {
+            $pdo->beginTransaction();
+            $result = $callback();
+            $pdo->commit();
+            return $result;
+        } catch (\Exception $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
     }
-
-    public static function lastInsertId(): string
-    {
-        return Connection::pdo()->lastInsertId();
-    }
-}
+}   

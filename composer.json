@@ -1,3 +1,4 @@
+{} 
 {
     "name": "pos-system/core",
     "description": "PH POS System - Core Configuration Module",
@@ -22,3 +23,4 @@
     "minimum-stability": "stable",
     "prefer-stable": true
 }
+

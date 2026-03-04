@@ -1,22 +1,33 @@
 <?php
-require_once __DIR__ . '/../config/bootstrap.php';
 
-$username = 'admin';
-$password = 'admin123!';
-$hash = password_hash($password, PASSWORD_DEFAULT);
-$full_name = 'Administrator';
-$role = 'ADMIN';
-$created_at = date('Y-m-d H:i:s');
+return new class
+{
+    public function up(PDO $db): void
+    {
+        // Check if admin user already exists
+        $stmt = $db->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->execute(['admin']);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user) {
+            // Create admin user with default password
+            $hashedPassword = password_hash('admin123!', PASSWORD_DEFAULT);
+            $now = date('Y-m-d H:i:s');
+            
+            $stmt = $db->prepare("
+                INSERT INTO users (username, password, email, is_active, created_at)
+                VALUES (?, ?, ?, 1, ?)
+            ");
+            $stmt->execute(['admin', $hashedPassword, 'admin@pos-system.local', $now]);
+            
+            echo "✅ Admin user created (username: admin, password: admin123!)\n";
+        }
+    }
 
-$pdo = db();
-// Check if admin already exists
-$stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
-$stmt->execute([$username]);
-if (!$stmt->fetch()) {
-    $sql = "INSERT INTO users (username, password_hash, full_name, role, is_active, created_at) VALUES (?, ?, ?, ?, 1, ?)";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$username, $hash, $full_name, $role, $created_at]);
-    echo "Admin user seeded successfully.\n";
-} else {
-    echo "Admin user already exists.\n";
-}
+    public function down(PDO $db): void
+    {
+        // Don't delete admin user in down migration for safety
+        // Just log a message
+        echo "⚠️ Skipping admin user deletion for safety\n";
+    }
+};

@@ -12,7 +12,6 @@ composer.lock
 .idea/
 *.swo
 *.swp
-*.DS_Store
 
 # OS files
 Thumbs.db
@@ -21,15 +20,19 @@ Thumbs.db
 # Logs
 /logs/*
 !logs/.gitkeep
+*.log
 
 # Storage
 /storage/*
 !storage/.gitkeep
 
-# Test files (never commit)
+/storage/logs/*
+/storage/cache/*
+
+# Test files
 test_*.php
 *-test.php
 
-/storage/logs/*
-
-/storage/cache/*
+# Local development
+day1_complete.txt
+verify_report.txt

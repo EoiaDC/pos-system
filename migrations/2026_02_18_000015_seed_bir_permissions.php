@@ -1,49 +1,57 @@
 <?php
-require_once __DIR__ . '/../config/bootstrap.php';
 
-$pdo = db();
-$pdo->beginTransaction();
-
-try {
-    // Define new permissions
-    $birPerms = [
-        ['code' => 'bir.company_profile.manage', 'label' => 'Manage Company Profile'],
-        ['code' => 'bir.registers.manage', 'label' => 'Manage POS Registers'],
-        ['code' => 'bir.or_series.manage', 'label' => 'Manage OR Series'],
-    ];
-
-    // Insert permissions if they don't exist
-    $permIds = [];
-    foreach ($birPerms as $perm) {
-        $stmt = $pdo->prepare("SELECT id FROM permissions WHERE code = ?");
-        $stmt->execute([$perm['code']]);
-        $existing = $stmt->fetch();
-        if (!$existing) {
-            $stmt = $pdo->prepare("INSERT INTO permissions (code, label) VALUES (?, ?)");
-            $stmt->execute([$perm['code'], $perm['label']]);
-            $permIds[$perm['code']] = $pdo->lastInsertId();
-        } else {
-            $permIds[$perm['code']] = $existing['id'];
+return new class
+{
+    public function up(PDO $db): void
+    {
+        $birPermissions = [
+            ['bir.company_profile.manage', 'Manage Company Profile'],
+            ['bir.registers.manage', 'Manage POS Registers'],
+            ['bir.or_series.manage', 'Manage OR Series']
+        ];
+        
+        $db->beginTransaction();
+        
+        try {
+            // Insert BIR permissions if they don't exist
+            foreach ($birPermissions as [$code, $label]) {
+                $stmt = $db->prepare("SELECT id FROM permissions WHERE code = ?");
+                $stmt->execute([$code]);
+                $perm = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$perm) {
+                    $stmt = $db->prepare("INSERT INTO permissions (code, label) VALUES (?, ?)");
+                    $stmt->execute([$code, $label]);
+                }
+            }
+            
+            // Get admin role ID
+            $stmt = $db->prepare("SELECT id FROM roles WHERE code = ?");
+            $stmt->execute(['admin']);
+            $adminRole = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($adminRole) {
+                // Assign BIR permissions to admin role
+                foreach ($birPermissions as [$code, $label]) {
+                    $stmt = $db->prepare("
+                        INSERT INTO role_permissions (role_id, permission_id)
+                        SELECT ?, id FROM permissions WHERE code = ?
+                    ");
+                    $stmt->execute([$adminRole['id'], $code]);
+                }
+            }
+            
+            $db->commit();
+            
+        } catch (Exception $e) {
+            $db->rollBack();
+            throw $e;
         }
     }
 
-    // Get admin role id
-    $stmt = $pdo->prepare("SELECT id FROM roles WHERE name = 'admin'");
-    $stmt->execute();
-    $adminRoleId = $stmt->fetchColumn();
-    if (!$adminRoleId) {
-        throw new Exception("Admin role not found");
+    public function down(PDO $db): void
+    {
+        // Don't delete permissions in down migration for safety
+        echo "⚠️ Skipping BIR permissions deletion for safety\n";
     }
-
-    // Assign all new permissions to admin role
-    foreach ($permIds as $permId) {
-        $stmt = $pdo->prepare("INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)");
-        $stmt->execute([$adminRoleId, $permId]);
-    }
-
-    $pdo->commit();
-    echo "BIR permissions seeded successfully.\n";
-} catch (Exception $e) {
-    $pdo->rollBack();
-    echo "Error seeding BIR permissions: " . $e->getMessage() . "\n";
-}
+};
