@@ -28,18 +28,18 @@ function flash($key, $message = null) {
     return null;
 }
 
-// Simple PSR-4 autoloader for src namespace
+// PSR-4 autoloader for both App and POS namespaces
 spl_autoload_register(function ($class) {
-    $prefix = 'App\\';
-    $base_dir = __DIR__ . '/../src/';
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
+    // Handle App\ namespace
+    if (strpos($class, 'App\\') === 0) {
+        $file = __DIR__ . '/../src/' . str_replace('\\', '/', substr($class, 4)) . '.php';
+        if (file_exists($file)) require $file;
     }
-    $relative_class = substr($class, $len);
-    $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
-    if (file_exists($file)) {
-        require $file;
+    
+    // Handle POS\ namespace
+    if (strpos($class, 'POS\\') === 0) {
+        $file = __DIR__ . '/../src/' . str_replace('\\', '/', substr($class, 4)) . '.php';
+        if (file_exists($file)) require $file;
     }
 });
 
