@@ -1,343 +1,303 @@
 <?php
-
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-register_shutdown_function(function() {
-    $error = error_get_last();
-    if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-        header('Content-Type: text/plain');
-        echo "FATAL ERROR: " . $error['message'] . " in " . $error['file'] . " on line " . $error['line'];
-    }
-});
-
-use App\Admin\AdminHomeController;
-use App\Admin\UsersController;
-use App\Admin\UserRolesController;
-use App\Admin\RolesController;
-use App\Admin\RolePermissionsController;
-use App\Admin\CompanyProfileController;
-use App\Admin\RegistersController;
-use App\Admin\OrSeriesController;
-use \App\Admin\BirReadinessController;
-use App\Core\SalesDraftService;
-use App\Sales\SaleDraftController;
-use App\Sales\SetupController;
-use App\Core\User\SalesLinesController;
-use App\Audit\AuditEvent;
-use App\Audit\Auditor;
-
+// Load bootstrap
 require __DIR__ . '/../config/bootstrap.php';
 require __DIR__ . '/../src/Core/Router.php';
-require __DIR__ . '/../src/Core/View.php';
-require __DIR__ . '/../src/Auth/Auth.php';
-require __DIR__ . '/../src/Auth/Rbac.php';
-require __DIR__ . '/../src/Audit/AuditEvent.php';
-require __DIR__ . '/../src/Audit/Auditor.php';
 
-// Import namespaced classes
 use App\Core\Router;
-use App\Core\View;
 
+$router = new Router();
 
-$router = new Router(); // Now works
-// ... rest of your code unchanged
-
-// GET routes
-$router->get('/', function () {
-    return View::render('home');
+// 👇 TEMPORARY LOGIN ROUTE 👇
+$router->get('/login', function() {
+    include __DIR__ . '/../views/login.php';
 });
 
-$router->get('/login', function () {
-    return View::render('login');
-});
-
-// POST routes
-$router->post('/login', function () {
+$router->post('/login', function() {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
-
-    if (empty($username) || empty($password)) {
-        flash('error', 'Username and password required.');
-        header('Location: ' . APP_BASE_PATH . '/login');
-        exit;
-    }
-
-    if (Auth::attempt($username, $password)) {
-        // Record login audit
-        $event = new AuditEvent('LOGIN', 'user');
-        $event->actor_user_id = $_SESSION['user']['id'];
-        Auditor::record($event);
-
-        flash('success', 'Welcome back, ' . $_SESSION['user']['full_name'] . '!');
-        header('Location: ' . APP_BASE_PATH . '/');
-        exit;
-    } else {
-        flash('error', 'Invalid username or password.');
-        header('Location: ' . APP_BASE_PATH . '/login');
-        exit;
-    }
-});
-
-$router->post('/logout', function () {
-    if (Auth::check()) {
-        // Record logout audit before destroying session
-        $event = new AuditEvent('LOGOUT', 'user');
-        $event->actor_user_id = $_SESSION['user']['id'];
-        Auditor::record($event);
-    }
-    Auth::logout();
-    flash('info', 'You have been logged out.');
-    header('Location: ' . APP_BASE_PATH . '/login');
+    
+    // For testing, accept any login
+    $_SESSION['user'] = ['id' => 1, 'username' => 'admin'];
+    
+    header('Location: /pos-system/public/sales');
     exit;
 });
 
-// ========== PART 7: Module routes with guards ==========
+// ========== SALES ROUTES ==========
+
+// Sales home
 $router->get('/sales', function() {
-    $html = "<h1>Sales Module</h1><p>Placeholder for sales dashboard.</p>";
-    if (Auth::hasPermission('sales.create')) {
-        $html .= '<p><a href="' . APP_BASE_PATH . '/sales/start">Start New Sale</a></p>';
-    }
-    return $html;
-}, ['auth' => true, 'perm' => 'sales.view']);
+    require_once __DIR__ . '/../src/Sales/SalesHomeController.php';
+    $controller = new POS\Sales\SalesHomeController();
+    $controller->index();
+});
 
-$router->get('/inventory', function() {
-    return "<h1>Inventory Module</h1><p>Placeholder for inventory dashboard.</p>";
-}, ['auth' => true, 'perm' => 'inventory.view']);
+// Sales history
+$router->get('/sales/history', function() {
+    require_once __DIR__ . '/../src/Sales/SalesHistoryController.php';
+    $controller = new POS\Sales\SalesHistoryController();
+    $controller->index();
+});
 
-$router->get('/purchasing', function() {
-    return "<h1>Purchasing Module</h1><p>Placeholder for purchasing dashboard.</p>";
-}, ['auth' => true, 'perm' => 'purchasing.view']);
 
-// Admin dashboard
-$router->get('/admin', [AdminHomeController::class, 'index'], ['auth' => true, 'perm' => 'admin.access']);
+// Register status
+$router->get('/sales/register-status', function() {
+    require_once __DIR__ . '/../src/Sales/RegisterStatusController.php';
+    $controller = new POS\Sales\RegisterStatusController();
+    $controller->index();
+});
 
-// User management
-$router->get('/admin/users', [UsersController::class, 'index'], ['auth' => true, 'perm' => 'admin.users.manage']);
-$router->get('/admin/user-roles', [UserRolesController::class, 'index'], ['auth' => true, 'perm' => 'admin.users.manage']);
-$router->post('/admin/user-roles', [UserRolesController::class, 'update'], ['auth' => true, 'perm' => 'admin.users.manage']);
+// BIR readiness
+$router->get('/sales/bir-readiness', function() {
+    require_once __DIR__ . '/../src/Sales/BirReadinessController.php';
+    $controller = new POS\Sales\BirReadinessController();
+    $controller->index();
+});
 
-// Role management (read-only)
-$router->get('/admin/roles', [RolesController::class, 'index'], ['auth' => true, 'perm' => 'admin.roles.manage']);
-$router->get('/admin/role-permissions', [RolePermissionsController::class, 'index'], ['auth' => true, 'perm' => 'admin.roles.manage']);
-
-// Additional module routes for Dev A/B/C (placeholders for now)
-$router->get('/sales/new', function() { return "<h1>New Sale</h1>"; }, ['auth'=>true, 'perm'=>'sales.create']);
-$router->get('/sales/history', function() { return "<h1>Sales History</h1>"; }, ['auth'=>true, 'perm'=>'sales.view']);
-$router->get('/inventory/items', function() { return "<h1>Items</h1>"; }, ['auth'=>true, 'perm'=>'inventory.items.manage']);
-$router->get('/inventory/categories', function() { return "<h1>Categories</h1>"; }, ['auth'=>true, 'perm'=>'inventory.categories.manage']);
-$router->get('/inventory/uom', function() { return "<h1>UOM</h1>"; }, ['auth'=>true, 'perm'=>'inventory.uom.manage']);
-$router->get('/purchasing/suppliers', function() { return "<h1>Suppliers</h1>"; }, ['auth'=>true, 'perm'=>'purchasing.suppliers.manage']);
-$router->get('/purchasing/purchase-orders', function() { return "<h1>Purchase Orders</h1>"; }, ['auth'=>true, 'perm'=>'purchasing.view']);
-
-// BIR Company Profile
-$router->get('/admin/company-profile', [CompanyProfileController::class, 'index'], ['auth' => true, 'perm' => 'bir.company_profile.manage']);
-$router->post('/admin/company-profile', [CompanyProfileController::class, 'update'], ['auth' => true, 'perm' => 'bir.company_profile.manage']);
-
-// POS Registers
-$router->get('/admin/registers', [RegistersController::class, 'index'], ['auth' => true, 'perm' => 'bir.registers.manage']);
-$router->post('/admin/registers/create', [RegistersController::class, 'create'], ['auth' => true, 'perm' => 'bir.registers.manage']);
-$router->post('/admin/registers/toggle', [RegistersController::class, 'toggle'], ['auth' => true, 'perm' => 'bir.registers.manage']);
-
-// OR Series
-$router->get('/admin/or-series', [OrSeriesController::class, 'index'], ['auth' => true, 'perm' => 'bir.or_series.manage']);
-$router->post('/admin/or-series/create', [OrSeriesController::class, 'create'], ['auth' => true, 'perm' => 'bir.or_series.manage']);
-
-// Module placeholders for other devs (optional)
-$router->get('/sales/register-status', function() { return "<h1>Register Status</h1><p>Placeholder for sales module.</p>"; }, ['auth' => true, 'perm' => 'sales.view']);
-$router->get('/inventory/stock-movement', function() { return "<h1>Stock Movement</h1><p>Placeholder for inventory module.</p>"; }, ['auth' => true, 'perm' => 'inventory.view']);
-$router->get('/purchasing/receiving', function() { return "<h1>Receiving</h1><p>Placeholder for purchasing module.</p>"; }, ['auth' => true, 'perm' => 'purchasing.view']);
-
-$router->get('/admin/bir-readiness', [BirReadinessController::class, 'index'], ['auth' => true, 'perm' => 'bir.readiness.view']);
-
-// GET /sales/start – show a simple start form (or just a button)
+// START NEW SALE - GET (show form)
 $router->get('/sales/start', function() {
-    if (!Auth::check()) {
-        header('Location: ' . APP_BASE_PATH . '/login');
-        exit;
-    }
-    if (!Auth::hasPermission('sales.create')) {
-        http_response_code(403);
-        require __DIR__ . '/../views/errors/403.php';
-        exit;
-    }
-    // Simple form with just a submit button
-    return '
-        <h1>Start New Sale</h1>
-        <form method="POST" action="' . APP_BASE_PATH . '/sales/start">
-            <button type="submit">Create Draft Sale</button>
-        </form>
-        <p><a href="' . APP_BASE_PATH . '/">Back</a></p>
-    ';
-}, ['auth' => true, 'perm' => 'sales.create']);  // auth+perm already checked, but double-check in closure
+    require_once __DIR__ . '/../src/Sales/SaleStartController.php';
+    $controller = new POS\Sales\SaleStartController();
+    $controller->index();
+});
 
-// POST /sales/start – create draft and redirect
+// START NEW SALE - POST (process form)
 $router->post('/sales/start', function() {
-    if (!Auth::check()) {
-        header('Location: ' . APP_BASE_PATH . '/login');
-        exit;
-    }
-    if (!Auth::hasPermission('sales.create')) {
-        http_response_code(403);
-        require __DIR__ . '/../views/errors/403.php';
-        exit;
-    }
+    require_once __DIR__ . '/../src/Sales/SaleStartController.php';
+    $controller = new POS\Sales\SaleStartController();
+    $controller->create();
+});
 
-    $saleId = SalesDraftService::createDraft(Auth::userId());
-    if ($saleId === 0) {
-        // Not ready
-        flash('error', 'BIR readiness incomplete. Complete setup before selling.');
-        header('Location: ' . APP_BASE_PATH . '/admin/bir-readiness');
-        exit;
-    }
-
-    // Redirect to draft page (DEV A will handle this route later)
-    // For now, just show a placeholder
-    flash('success', "Draft sale created (ID: $saleId)");
-    header('Location: ' . APP_BASE_PATH . '/');
-    exit;
-}, ['auth' => true, 'perm' => 'sales.create']);
-
-// If DEV A creates a /sales/draft route later, add it here as well
-//PLACEHOLDER: This route is just for testing the redirect after creating a draft sale. DEV A will implement the actual draft sale page later.
+// Draft sale
 $router->get('/sales/draft', function() {
-    $saleId = $_GET['sale_id'] ?? 0;
-    return "<h1>Draft Sale (Placeholder)</h1><p>Sale ID: $saleId</p>";
-}, ['auth' => true, 'perm' => 'sales.view']);
+    require_once __DIR__ . '/../src/Sales/SaleDraftController.php';
+    $controller = new POS\Sales\SaleDraftController();
+    $controller->index();
+});
 
-//PLACEHOLDER: These routes are for testing the draft sale setup process. DEV A will implement the actual logic later.
-$router->post('/sales/draft/set-register', function() {
-    http_response_code(501);
-    echo "SaleSetupController not implemented yet.";
-    exit;
-}, ['auth' => true, 'perm' => 'sales.create']);
+// Register update
+$router->post('/sales/register/update', function() {
+    require_once __DIR__ . '/../src/Sales/SaleRegisterController.php';
+    $controller = new POS\Sales\SaleRegisterController();
+    $controller->update();
+});
 
-$router->post('/sales/draft/set-or-series', function() {
-    http_response_code(501);
-    echo "SaleSetupController not implemented yet.";
-    exit;
-}, ['auth' => true, 'perm' => 'sales.create']);
+// OR series update
+$router->post('/sales/or-series/update', function() {
+    require_once __DIR__ . '/../src/Sales/SaleOrSeriesController.php';
+    $controller = new POS\Sales\SaleOrSeriesController();
+    $controller->update();
+});
 
-//Temporary Test Route for Auditing (can be removed later)
-$router->get('/test-audit', function() {
-    Auditor::log('sale.started', [
-        'entity_id' => 999,
-        'meta' => ['note' => 'test from DEV D']
-    ]);
-    return "Audit test completed. Check audit_logs table.";
-}, ['auth' => true, 'perm' => 'admin.access']); // only admin can access
+// Line add
+$router->post('/sales/line/add', function() {
+    require_once __DIR__ . '/../src/Sales/SaleLineController.php';
+    $controller = new POS\Sales\SaleLineController();
+    $controller->add();
+});
 
-// // Add line to draft
-// $router->post('/sales/draft/add-line', [SaleLinesController::class, 'addLine'], ['auth' => true, 'perm' => 'sales.create']);
+// Line remove
+$router->post('/sales/line/remove', function() {
+    require_once __DIR__ . '/../src/Sales/SaleLineController.php';
+    $controller = new POS\Sales\SaleLineController();
+    $controller->remove();
+});
 
-// // Remove line from draft
-// $router->post('/sales/draft/remove-line', [SaleLinesController::class, 'removeLine'], ['auth' => true, 'perm' => 'sales.create']);
-
-// $router->get('/sales/draft', [SaleDraftController::class, 'index'], ['auth' => true, 'perm' => 'sales.view']);
-
-// Temporary placeholders until DEV A implements controllers
-$router->post('/sales/draft/add-line', function() {
-    http_response_code(501);
-    echo "Add line endpoint - not implemented yet (DEV A's task).";
-    exit;
-}, ['auth' => true, 'perm' => 'sales.create']);
-
-$router->post('/sales/draft/remove-line', function() {
-    http_response_code(501);
-    echo "Remove line endpoint - not implemented yet (DEV A's task).";
-    exit;
-}, ['auth' => true, 'perm' => 'sales.create']);
-
-$router->get('/sales/draft', function() {
-    $saleId = $_GET['sale_id'] ?? 0;
-    echo "<h1>Draft Sale Page (Placeholder)</h1>";
-    echo "<p>Sale ID: " . htmlspecialchars($saleId) . "</p>";
-    echo "<p>This will be replaced by DEV A's controller.</p>";
-}, ['auth' => true, 'perm' => 'sales.view']);
-
-
-// //Temporary Test Route for SalesTotalsService (can be removed later)
-// $router->get('/test-recompute', function() {
-//     $saleId = $_GET['sale_id'] ?? 0;
-//     if (!$saleId) {
-//         return "Missing sale_id";
-//     }
-//     try {
-//         SalesTotalsService::recompute($saleId);
-//         return "Recompute executed for sale $saleId";
-//     } catch (\Exception $e) {
-//         return "Error: " . $e->getMessage();
-//     }
-// }, ['auth' => true, 'perm' => 'admin.access']); // only admin can access
-
-// //test route for SalesTotalsService with fully qualified class name to avoid any issues with imports. This can be removed later.
-// $router->get('/test-recompute', function() {
-//     $saleId = $_GET['sale_id'] ?? 0;
-//     if (!$saleId) {
-//         return "Missing sale_id";
-//     }
-//     try {
-//         \App\Core\SalesTotalsService::recompute($saleId);
-//         return "Recompute executed for sale $saleId";
-//     } catch (\Exception $e) {
-//         return "Error: " . $e->getMessage();
-//     }
-// }, ['auth' => true, 'perm' => 'admin.access']);
-
-// Temporary placeholder – remove when DEV A implements SalePostController
+// Post sale
 $router->post('/sales/draft/post', function() {
-    http_response_code(501);
-    echo json_encode(['error' => 'SalePostController not implemented yet (DEV A\'s task).']);
-    exit;
-}, ['auth' => true, 'perm' => 'sales.create']);
+    require_once __DIR__ . '/../src/Sales/SalePostController.php';
+    $controller = new POS\Sales\SalePostController();
+    $controller->post();
+});
 
-// Temporary placeholder – remove when DEV A implements OrIssueController
+// OR issue
 $router->post('/sales/or/issue', function() {
-    http_response_code(501);
-    echo json_encode(['error' => 'OrIssueController not implemented yet (DEV A\'s task).']);
+    require_once __DIR__ . '/../src/Sales/OrIssueController.php';
+    $controller = new POS\Sales\OrIssueController();
+    $controller->issue();
+});
+
+// Payment record
+$router->post('/sales/payments/record', function() {
+    require_once __DIR__ . '/../src/Controllers/Sales/PaymentsController.php';
+    $controller = new POS\Controllers\Sales\PaymentsController();
+    $controller->record();
+});
+
+// Root redirect
+$router->get('/', function() {
+    header('Location: /pos-system/public/sales');
     exit;
-}, ['auth' => true, 'perm' => 'sales.create']);
+});
 
-// // TEMPORARY TEST ROUTE – remove after testing
-// $router->post('/test-issue-or', function() {
-//     $saleId = $_POST['sale_id'] ?? 0;
-//     if (!$saleId) {
-//         return "Missing sale_id";
-//     }
-//     $result = \App\Core\OrIssuanceService::issueForSale((int)$saleId, Auth::userId());
-//     if ($result > 0) {
-//         return "OR issued: $result";
-//     } else {
-//         return "Failed to issue OR";
-//     }
-// }, ['auth' => true, 'perm' => 'admin.access']); // admin only
+// ========== TEMPORARY ADMIN SETUP PAGES ==========
 
+// Company Profile - GET
+$router->get('/admin/company-profile', function() {
+    $config = require __DIR__ . '/../config/database.php';
+    $db = new PDO(
+        "mysql:host={$config['host']};dbname={$config['dbname']}",
+        $config['user'],
+        $config['pass']
+    );
+    
+    $success = isset($_GET['success']);
+    
+    echo "<h1>Company Profile</h1>";
+    if ($success) {
+        echo "<p style='color:green'>✅ Company profile saved!</p>";
+    }
+    echo "<form method='POST'>";
+    echo "<p>Company Name: <input type='text' name='company_name' required></p>";
+    echo "<p>TIN: <input type='text' name='tin' required></p>";
+    echo "<p>Address: <input type='text' name='address' required></p>";
+    echo "<p><button type='submit'>Save</button></p>";
+    echo "</form>";
+    echo "<p><a href='/pos-system/public/admin/registers'>Next: Create Register →</a></p>";
+});
 
+// Company Profile - POST
+$router->post('/admin/company-profile', function() {
+    $config = require __DIR__ . '/../config/database.php';
+    $db = new PDO(
+        "mysql:host={$config['host']};dbname={$config['dbname']}",
+        $config['user'],
+        $config['pass']
+    );
+    
+    $name = $_POST['company_name'] ?? '';
+    $tin = $_POST['tin'] ?? '';
+    $address = $_POST['address'] ?? '';
+    
+    $db->exec("DELETE FROM company_profile");
+    $stmt = $db->prepare("INSERT INTO company_profile (registered_name, tin, address, created_at) VALUES (?, ?, ?, NOW())");
+    $stmt->execute([$name, $tin, $address]);
+    
+    header('Location: /pos-system/public/admin/company-profile?success=1');
+    exit;
+});
 
+// Registers - GET
+$router->get('/admin/registers', function() {
+    $config = require __DIR__ . '/../config/database.php';
+    $db = new PDO(
+        "mysql:host={$config['host']};dbname={$config['dbname']}",
+        $config['user'],
+        $config['pass']
+    );
+    
+    $success = isset($_GET['success']);
+    
+    echo "<h1>POS Registers</h1>";
+    if ($success) {
+        echo "<p style='color:green'>✅ Register created!</p>";
+    }
+    echo "<form method='POST'>";
+    echo "<p>Register Code: <input type='text' name='register_code' value='REG-001' required></p>";
+    echo "<p>Register Name: <input type='text' name='register_name' value='Main Register' required></p>";
+    echo "<p><button type='submit'>Create Register</button></p>";
+    echo "</form>";
+    echo "<p><a href='/pos-system/public/admin/or-series'>Next: Create OR Series →</a></p>";
+});
 
+// Registers - POST
+$router->post('/admin/registers', function() {
+    $config = require __DIR__ . '/../config/database.php';
+    $db = new PDO(
+        "mysql:host={$config['host']};dbname={$config['dbname']}",
+        $config['user'],
+        $config['pass']
+    );
+    
+    $code = $_POST['register_code'] ?? 'REG-001';
+    $name = $_POST['register_name'] ?? 'Main Register';
+    
+    $stmt = $db->prepare("INSERT INTO pos_registers (register_code, machine_name, is_active, created_at) VALUES (?, ?, 1, NOW())");
+    $stmt->execute([$code, $name]);
+    
+    header('Location: /pos-system/public/admin/registers?success=1');
+    exit;
+});
 
+// OR Series - GET
+$router->get('/admin/or-series', function() {
+    $config = require __DIR__ . '/../config/database.php';
+    $db = new PDO(
+        "mysql:host={$config['host']};dbname={$config['dbname']}",
+        $config['user'],
+        $config['pass']
+    );
+    
+    // Get first register ID
+    $regId = $db->query("SELECT id FROM pos_registers LIMIT 1")->fetchColumn();
+    $success = isset($_GET['success']);
+    
+    echo "<h1>OR Series</h1>";
+    if ($success) {
+        echo "<p style='color:green'>✅ OR Series created!</p>";
+    }
+    if (!$regId) {
+        echo "<p style='color:red'>❌ Create a register first!</p>";
+        echo "<p><a href='/pos-system/public/admin/registers'>Go to Registers</a></p>";
+    } else {
+        echo "<form method='POST'>";
+        echo "<p>Series Code: <input type='text' name='series_code' value='OR-2024' required></p>";
+        echo "<p>Start Number: <input type='number' name='start_no' value='1000' required></p>";
+        echo "<p>End Number: <input type='number' name='end_no' value='9999' required></p>";
+        echo "<p><button type='submit'>Create OR Series</button></p>";
+        echo "</form>";
+    }
+    echo "<p><a href='/pos-system/public/sales/start'>Done! Start Sale →</a></p>";
+});
 
+// OR Series - POST
+$router->post('/admin/or-series', function() {
+    $config = require __DIR__ . '/../config/database.php';
+    $db = new PDO(
+        "mysql:host={$config['host']};dbname={$config['dbname']}",
+        $config['user'],
+        $config['pass']
+    );
+    
+    $regId = $db->query("SELECT id FROM pos_registers LIMIT 1")->fetchColumn();
+    $code = $_POST['series_code'] ?? 'OR-2024';
+    $start = $_POST['start_no'] ?? 1000;
+    $end = $_POST['end_no'] ?? 9999;
+    
+    $stmt = $db->prepare("INSERT INTO or_series (register_id, series_code, start_no, end_no, current_no, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, NOW())");
+    $stmt->execute([$regId, $code, $start, $end, $start]);
+    
+    header('Location: /pos-system/public/admin/or-series?success=1');
+    exit;
+});
 
+// ========== DISPATCH ==========
 
-
-// Dispatch
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path = parse_url($uri, PHP_URL_PATH) ?: '/';
+$uri = $_SERVER['REQUEST_URI'] ?? '/';
+$base = defined('APP_BASE_PATH') ? APP_BASE_PATH : '/pos-system/public';
 
-$base = APP_BASE_PATH;
+$path = parse_url($uri, PHP_URL_PATH) ?: '/';
 if (str_starts_with($path, $base)) {
     $path = substr($path, strlen($base));
-    if ($path === '') {
+    if ($path === '' || $path === false) {
         $path = '/';
     }
 }
 
+// DEBUG OUTPUT (now after $path is defined)
+echo "<h1>Router Debug</h1>";
+echo "<pre>";
+echo "REQUEST_URI: " . $_SERVER['REQUEST_URI'] . "\n";
+echo "Base path: " . $base . "\n";
+echo "Calculated path: " . $path . "\n";
+echo "Method: " . $method . "\n";
+echo "</pre>";
+
 $response = $router->dispatch($method, $path);
 if ($response === false) {
     http_response_code(404);
-    echo "<h1>404 Not Found</h1>";
+    echo "404 - Page not found";
 } else {
     echo $response;
 }

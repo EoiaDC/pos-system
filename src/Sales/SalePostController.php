@@ -2,9 +2,9 @@
 
 namespace POS\Sales;
 
-use POS\Core\Auth;
-use POS\Core\Response;
-use POS\Core\BirReadiness;
+use App\Core\Auth;
+use App\Core\Response;
+use App\Core\BirReadiness;
 
 class SalePostController
 {
@@ -112,7 +112,7 @@ class SalePostController
             $metadata = json_encode([
                 'sale_id' => $saleId,
                 'subtotal' => $sale['subtotal'],
-                'discount_total' => $sale['discount_total'] ?? 0,
+                'discount_total' => $sale['discount_amount'] ?? 0,
                 'grand_total' => $sale['grand_total'],
                 'line_count' => $sale['line_count'],
                 'pos_register_id' => $sale['pos_register_id'],

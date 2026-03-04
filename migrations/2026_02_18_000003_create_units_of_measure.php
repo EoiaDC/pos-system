@@ -16,7 +16,7 @@ return new class
         
         $db->exec($sql);
         
-        // Insert default units
+        // Insert default units only if they don't exist
         $defaults = [
             ['pc', 'Piece'],
             ['kg', 'Kilogram'],
@@ -28,9 +28,16 @@ return new class
             ['ml', 'Milliliter']
         ];
         
-        $stmt = $db->prepare("INSERT INTO units_of_measure (code, name) VALUES (?, ?)");
+        $checkStmt = $db->prepare("SELECT COUNT(*) FROM units_of_measure WHERE code = ?");
+        $insertStmt = $db->prepare("INSERT INTO units_of_measure (code, name) VALUES (?, ?)");
+        
         foreach ($defaults as $unit) {
-            $stmt->execute($unit);
+            $checkStmt->execute([$unit[0]]);
+            $count = $checkStmt->fetchColumn();
+            
+            if ($count == 0) {
+                $insertStmt->execute($unit);
+            }
         }
     }
 

@@ -2,9 +2,8 @@
 
 namespace POS\Controllers\Sales;
 
-use POS\Core\Auth;
-use POS\Core\Response;
-use POS\Core\Validator;
+use App\Core\Auth;
+use App\Core\Response;
 
 class PaymentsController
 {

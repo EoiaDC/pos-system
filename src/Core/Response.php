@@ -1,6 +1,6 @@
 <?php
 
-namespace POS\Core;
+namespace App\Core;
 
 class Response
 {

@@ -2,10 +2,10 @@
 
 namespace POS\Sales;
 
-use POS\Core\Auth;
-use POS\Core\Response;
-use POS\Core\Validator;
-use POS\Core\BirReadiness;
+use App\Core\Auth;
+use App\Core\Response;
+use App\Core\Validator;
+use App\Core\BirReadiness;
 
 class SaleDraftController
 {
@@ -51,9 +51,9 @@ class SaleDraftController
         $stmt->execute([$saleId]);
         $sale = $stmt->fetch(\PDO::FETCH_ASSOC);
         
-        // Load active registers for dropdown
+        // Load active registers for dropdown - FIXED: changed register_name to machine_name
         $stmt = $db->query("
-            SELECT id, register_code, register_name 
+            SELECT id, register_code, machine_name as register_name 
             FROM pos_registers 
             WHERE is_active = 1 
             ORDER BY register_code
@@ -80,7 +80,7 @@ class SaleDraftController
         ");
         $items = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         
-        // 👇 NEW: Load lines for this sale and count them
+        // Load lines for this sale and count them
         $stmt = $db->prepare("
             SELECT * FROM sales_lines 
             WHERE sale_id = ?
@@ -89,7 +89,7 @@ class SaleDraftController
         $stmt->execute([$saleId]);
         $lines = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         
-        // 👇 NEW: Set line count for preconditions display
+        // Set line count for preconditions display
         $lineCount = count($lines);
         
         // Get BIR readiness status for context (read-only)

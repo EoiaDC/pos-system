@@ -2,9 +2,8 @@
 
 namespace POS\Sales;
 
-use POS\Core\Auth;
-use POS\Core\Response;
-use POS\Core\Validator;
+use App\Core\Auth;
+use App\Core\Response;
 
 class SaleOrSeriesController
 {
@@ -45,7 +44,6 @@ class SaleOrSeriesController
         $db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         
         try {
-            // Begin transaction
             $db->beginTransaction();
             
             // Verify the OR series exists and is active
@@ -67,8 +65,6 @@ class SaleOrSeriesController
                 Response::redirect('/sales/draft?sale_id=' . $saleId);
                 return;
             }
-            
-            // Log audit event (will be handled by DEV D's service)
             
             $db->commit();
             

@@ -6,7 +6,7 @@ return new class
     {
         $sql = "
         CREATE TABLE IF NOT EXISTS purchase_order_lines (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            id INT AUTO_INCREMENT PRIMARY KEY,
             po_id BIGINT UNSIGNED NOT NULL,
             item_id BIGINT UNSIGNED NULL,
             item_name VARCHAR(255) NOT NULL,
@@ -19,7 +19,8 @@ return new class
             INDEX idx_po (po_id),
             INDEX idx_item (item_id),
             
-            FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE
+            FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
+            FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ";
         

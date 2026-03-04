@@ -1,6 +1,8 @@
 <?php
 namespace App\Core;
 
+use App\Auth\Auth;
+
 class Router
 {
     private array $routes = [

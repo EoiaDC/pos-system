@@ -46,13 +46,13 @@
         </div>
         
         <div class="form-group">
-            <form method="POST" action="/sales/start">
+            <form method="POST" action="<?= APP_BASE_PATH ?>/sales/start">
                 <button type="submit" class="btn btn-primary">➕ Create Draft Sale</button>
             </form>
         </div>
         
         <div style="text-align: center; margin-top: 20px;">
-            <a href="/sales" class="btn-secondary">← Back to Sales Module</a>
+            <a href="<?= APP_BASE_PATH ?>/sales" class="btn-secondary">← Back to Sales Module</a>
         </div>
     </div>
 </body>

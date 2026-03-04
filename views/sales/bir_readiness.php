@@ -88,7 +88,7 @@
         </div>
         <?php endif; ?>
         
-        <a href="/sales" class="back-link">← Back to Sales Module</a>
+        <a href="<?= APP_BASE_PATH ?>/sales" class="back-link">← Back to Sales</a>
     </div>
 </body>
 </html>

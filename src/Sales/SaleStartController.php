@@ -2,9 +2,9 @@
 
 namespace POS\Sales;
 
-use POS\Core\Auth;
-use POS\Core\Response;
-use POS\Core\BirReadiness;
+use App\Core\Auth;
+use App\Core\Response;
+use App\Core\BirReadiness;
 
 class SaleStartController
 {
@@ -50,31 +50,28 @@ class SaleStartController
         $db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         
         try {
-            // Insert draft sale header
-            // Note: Using the exact column names from DEV D's migration
+            // Generate a unique transaction number
+            $transactionNumber = 'SALE-' . date('Ymd') . '-' . uniqid();
+            
+            // Insert draft sale header with transaction number
             $sql = "INSERT INTO sales_headers (
-                status, created_by, created_at
-            ) VALUES (?, ?, NOW())";
+                transaction_number, status, created_by, created_at
+            ) VALUES (?, 'DRAFT', ?, NOW())";
             
             $stmt = $db->prepare($sql);
-            $stmt->execute([
-                'DRAFT',
-                Auth::userId()
-            ]);
+            $stmt->execute([$transactionNumber, Auth::userId()]);
             
             $saleId = $db->lastInsertId();
             
-            // Log audit event (DEV D will handle this in service later)
-            // For now, we can log directly or rely on DEV D's service
-            
-            // Success! Redirect to draft page
             Response::flash('success', 'Draft sale created successfully');
-            Response::redirect('/sales/draft?sale_id=' . $saleId);
+            header('Location: /pos-system/public/sales/draft?sale_id=' . $saleId);
+            exit;
             
         } catch (\Exception $e) {
             error_log("SaleStartController::create error: " . $e->getMessage());
-            Response::flash('error', 'Failed to create draft sale. Please try again.');
-            Response::redirect('/sales/start');
+            echo "<h1>Database Error</h1>";
+            echo "<p>" . $e->getMessage() . "</p>";
+            exit;
         }
     }
 }

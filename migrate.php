@@ -1,25 +1,39 @@
 <?php
-// Turn on errors
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Include everything directly
+// Load bootstrap FIRST (defines env_get and loads config)
+require_once __DIR__ . '/config/bootstrap.php';
+
+// Load migration classes
 require_once __DIR__ . '/src/Database/DB.php';
 require_once __DIR__ . '/src/Migrations/MigrationLoader.php';
 require_once __DIR__ . '/src/Migrations/Migrator.php';
 
-// Run migrations
-$migrator = new Migrator(__DIR__ . '/migrations');
-$result = $migrator->up();
+// Set config in DB class
+$config = require __DIR__ . '/config/database.php';
+Pos\Database\DB::setConfig($config);
 
-// Simple output
-echo "<h2>Migration Result</h2>";
-if (empty($result)) {
-    echo "<p>✓ No migrations to apply</p>";
-} else {
-    echo "<p>✓ Applied:</p><ul>";
-    foreach ($result as $m) {
-        echo "<li>$m</li>";
+// Run migrations
+echo "<h1>🔄 POS System Migration</h1>";
+echo "<pre>";
+
+try {
+    $migrator = new Migrator(__DIR__ . '/migrations');
+    $result = $migrator->up();
+    
+    if (empty($result)) {
+        echo "✓ No new migrations to apply\n";
+    } else {
+        echo "✓ Applied " . count($result) . " migrations:\n";
+        foreach ($result as $m) {
+            echo "  - $m\n";
+        }
     }
-    echo "</ul>";
+    
+} catch (Exception $e) {
+    echo "❌ Error: " . $e->getMessage() . "\n";
+    echo "File: " . $e->getFile() . ":" . $e->getLine() . "\n";
 }
+
+echo "</pre>";

@@ -2,9 +2,8 @@
 
 namespace POS\Sales;
 
-use POS\Core\Auth;
-use POS\Core\Response;
-use POS\Core\Validator;
+use App\Core\Auth;
+use App\Core\Response;
 
 class SaleRegisterController
 {
@@ -45,7 +44,6 @@ class SaleRegisterController
         $db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         
         try {
-            // Begin transaction
             $db->beginTransaction();
             
             // Verify the register exists and is active
@@ -67,9 +65,6 @@ class SaleRegisterController
                 Response::redirect('/sales/draft?sale_id=' . $saleId);
                 return;
             }
-            
-            // Log audit event (will be handled by DEV D's service)
-            // For now, we can note it in a comment or call a helper if available
             
             $db->commit();
             
