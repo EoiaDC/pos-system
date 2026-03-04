@@ -51,9 +51,9 @@ class SaleDraftController
         $stmt->execute([$saleId]);
         $sale = $stmt->fetch(\PDO::FETCH_ASSOC);
         
-        // Load active registers for dropdown
+        // Load active registers for dropdown - FIXED: changed register_name to machine_name
         $stmt = $db->query("
-            SELECT id, register_code, register_name 
+            SELECT id, register_code, machine_name as register_name 
             FROM pos_registers 
             WHERE is_active = 1 
             ORDER BY register_code

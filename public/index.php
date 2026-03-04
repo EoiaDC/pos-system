@@ -39,6 +39,7 @@ $router->get('/sales/history', function() {
     $controller->index();
 });
 
+
 // Register status
 $router->get('/sales/register-status', function() {
     require_once __DIR__ . '/../src/Sales/RegisterStatusController.php';
@@ -53,13 +54,14 @@ $router->get('/sales/bir-readiness', function() {
     $controller->index();
 });
 
-// Start new sale
+// START NEW SALE - GET (show form)
 $router->get('/sales/start', function() {
     require_once __DIR__ . '/../src/Sales/SaleStartController.php';
     $controller = new POS\Sales\SaleStartController();
     $controller->index();
 });
 
+// START NEW SALE - POST (process form)
 $router->post('/sales/start', function() {
     require_once __DIR__ . '/../src/Sales/SaleStartController.php';
     $controller = new POS\Sales\SaleStartController();
@@ -289,6 +291,7 @@ echo "<pre>";
 echo "REQUEST_URI: " . $_SERVER['REQUEST_URI'] . "\n";
 echo "Base path: " . $base . "\n";
 echo "Calculated path: " . $path . "\n";
+echo "Method: " . $method . "\n";
 echo "</pre>";
 
 $response = $router->dispatch($method, $path);

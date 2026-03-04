@@ -50,23 +50,28 @@ class SaleStartController
         $db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         
         try {
-            // Insert draft sale header
+            // Generate a unique transaction number
+            $transactionNumber = 'SALE-' . date('Ymd') . '-' . uniqid();
+            
+            // Insert draft sale header with transaction number
             $sql = "INSERT INTO sales_headers (
-                status, created_by, created_at
-            ) VALUES ('DRAFT', ?, NOW())";
+                transaction_number, status, created_by, created_at
+            ) VALUES (?, 'DRAFT', ?, NOW())";
             
             $stmt = $db->prepare($sql);
-            $stmt->execute([Auth::userId()]);
+            $stmt->execute([$transactionNumber, Auth::userId()]);
             
             $saleId = $db->lastInsertId();
             
             Response::flash('success', 'Draft sale created successfully');
-            Response::redirect('/sales/draft?sale_id=' . $saleId);
+            header('Location: /pos-system/public/sales/draft?sale_id=' . $saleId);
+            exit;
             
         } catch (\Exception $e) {
             error_log("SaleStartController::create error: " . $e->getMessage());
-            Response::flash('error', 'Failed to create draft sale. Please try again.');
-            Response::redirect('/sales/start');
+            echo "<h1>Database Error</h1>";
+            echo "<p>" . $e->getMessage() . "</p>";
+            exit;
         }
     }
 }

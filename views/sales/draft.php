@@ -498,7 +498,7 @@
         <?php endif; ?>
         
         <div style="margin-top: 20px;">
-            <a href="/sales" class="btn-secondary">← Back to Sales Module</a>
+            <a href="<?= APP_BASE_PATH ?>/sales" class="btn-secondary">← Back to Sales Module</a>
         </div>
     </div>
 </body>
