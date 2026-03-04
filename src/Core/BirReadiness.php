@@ -1,91 +1,127 @@
 <?php
 namespace App\Core;
 
+use PDO;
+
+/**
+ * BIR Readiness Checker
+ * 
+ * Ensures all BIR requirements are met before allowing sales transactions
+ * Checks company profile, active register, and active OR series
+ */
 class BirReadiness
 {
+    private static ?PDO $db = null;
+    
     /**
-     * Return readiness status array.
+     * Initialize database connection
      */
-    public static function status(): array
+    private static function initDb(): void
     {
-        $pdo = db();
-
-        // ----- Company Profile -----
-        // Get the first row from company_profile (regardless of primary key name)
-        $stmt = $pdo->query("SELECT * FROM company_profile LIMIT 1");
-        $company = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-        $companyProfileOk = false;
-        $companyMissing = [];
-        if ($company) {
-            // Check required fields based on your form (registered_name, tin, address)
-            $requiredFields = ['registered_name', 'tin', 'address'];
-            foreach ($requiredFields as $field) {
-                if (empty($company[$field])) {
-                    $companyMissing[] = $field;
-                }
-            }
-            $companyProfileOk = empty($companyMissing);
-        } else {
-            $companyMissing[] = 'no_record';
+        if (self::$db === null) {
+            $config = require __DIR__ . '/../../config/database.php';
+            self::$db = new PDO(
+                "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}",
+                $config['user'],
+                $config['pass']
+            );
+            self::$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         }
-
-        // ----- Active Register -----
-        $stmt = $pdo->query("SELECT COUNT(*) FROM pos_registers WHERE is_active = 1");
-        $activeRegisterCount = (int) $stmt->fetchColumn();
-        $activeRegisterOk = $activeRegisterCount > 0;
-
-        // ----- Active OR Series (usable) -----
-        $stmt = $pdo->query("
-            SELECT COUNT(*) FROM or_series 
-            WHERE is_active = 1 
-              AND current_no BETWEEN start_no AND end_no
-        ");
-        $usableOrSeriesCount = (int) $stmt->fetchColumn();
-        $activeOrSeriesOk = $usableOrSeriesCount > 0;
-
-        // Overall OK
-        $overallOk = $companyProfileOk && $activeRegisterOk && $activeOrSeriesOk;
-
+    }
+    
+    /**
+     * Check if company profile is complete
+     */
+    public static function isCompanyProfileComplete(): bool
+    {
+        self::initDb();
+        
+        $stmt = self::$db->query("SELECT COUNT(*) FROM company_profile");
+        $count = $stmt->fetchColumn();
+        
+        return $count > 0;
+    }
+    
+    /**
+     * Check if at least one active register exists
+     */
+    public static function hasActiveRegister(): bool
+    {
+        self::initDb();
+        
+        $stmt = self::$db->query("SELECT COUNT(*) FROM pos_registers WHERE is_active = 1");
+        $count = $stmt->fetchColumn();
+        
+        return $count > 0;
+    }
+    
+    /**
+     * Check if at least one active OR series exists
+     */
+    public static function hasActiveOrSeries(): bool
+    {
+        self::initDb();
+        
+        $stmt = self::$db->query("SELECT COUNT(*) FROM or_series WHERE is_active = 1");
+        $count = $stmt->fetchColumn();
+        
+        return $count > 0;
+    }
+    
+    /**
+     * Get complete readiness status as array
+     */
+    public static function getReadinessStatus(): array
+    {
         return [
-            'company_profile_ok' => $companyProfileOk,
-            'active_register_ok' => $activeRegisterOk,
-            'active_or_series_ok' => $activeOrSeriesOk,
-            'overall_ok' => $overallOk,
-            'details' => [
-                'company_profile' => [
-                    'missing' => $companyMissing,
-                ],
-                'active_register' => [
-                    'count' => $activeRegisterCount,
-                ],
-                'active_or_series' => [
-                    'count' => (int) $pdo->query("SELECT COUNT(*) FROM or_series WHERE is_active = 1")->fetchColumn(),
-                    'usable_count' => $usableOrSeriesCount,
-                ],
-            ],
+            'company_profile_ok' => self::isCompanyProfileComplete(),
+            'has_active_register' => self::hasActiveRegister(),
+            'has_active_or_series' => self::hasActiveOrSeries(),
+            'overall_ok' => self::isCompanyProfileComplete() && 
+                           self::hasActiveRegister() && 
+                           self::hasActiveOrSeries()
         ];
     }
-
+    
     /**
-     * Enforce readiness: if not ready, redirect to /admin/bir-readiness with error.
-     * This will be called from sales controllers later.
+     * Check if system is ready for sales
+     */
+    public static function isReadyForSales(): bool
+    {
+        return self::isCompanyProfileComplete() && 
+               self::hasActiveRegister() && 
+               self::hasActiveOrSeries();
+    }
+    
+    /**
+     * Get list of missing requirements
+     */
+    public static function getMissingRequirements(): array
+    {
+        $missing = [];
+        
+        if (!self::isCompanyProfileComplete()) {
+            $missing[] = 'Company profile must be completed';
+        }
+        if (!self::hasActiveRegister()) {
+            $missing[] = 'At least one active POS register required';
+        }
+        if (!self::hasActiveOrSeries()) {
+            $missing[] = 'At least one active OR series required';
+        }
+        
+        return $missing;
+    }
+    
+    /**
+     * Enforce BIR readiness or redirect to admin page
      */
     public static function enforceOrRedirect(): void
     {
-        $status = self::status();
-        if ($status['overall_ok']) {
-            return;
-        }
-
-        // Not ready
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . APP_BASE_PATH . '/login');
+        if (!self::isReadyForSales()) {
+            $_SESSION['flash']['error'] = 'BIR readiness incomplete. Complete setup before selling.';
+            header('Location: /pos-system/public/admin/bir-readiness');
             exit;
         }
-
-        flash('error', 'BIR readiness incomplete. Complete setup before selling.');
-        header('Location: ' . APP_BASE_PATH . '/admin/bir-readiness');
-        exit;
     }
 }

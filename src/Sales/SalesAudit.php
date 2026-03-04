@@ -2,7 +2,10 @@
 
 namespace POS\Sales;
 
-use POS\Core\Auth;
+use App\Core\Auth;
+use App\Core\Response;  // Not used here but good practice
+use App\Core\Validator; // Not used here but good practice
+use App\Core\BirReadiness; // Not used here but good practice
 
 /**
  * Sales Audit Helper

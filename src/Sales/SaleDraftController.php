@@ -2,10 +2,10 @@
 
 namespace POS\Sales;
 
-use POS\Core\Auth;
-use POS\Core\Response;
-use POS\Core\Validator;
-use POS\Core\BirReadiness;
+use App\Core\Auth;
+use App\Core\Response;
+use App\Core\Validator;
+use App\Core\BirReadiness;
 
 class SaleDraftController
 {
@@ -80,7 +80,7 @@ class SaleDraftController
         ");
         $items = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         
-        // 👇 NEW: Load lines for this sale and count them
+        // Load lines for this sale and count them
         $stmt = $db->prepare("
             SELECT * FROM sales_lines 
             WHERE sale_id = ?
@@ -89,7 +89,7 @@ class SaleDraftController
         $stmt->execute([$saleId]);
         $lines = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         
-        // 👇 NEW: Set line count for preconditions display
+        // Set line count for preconditions display
         $lineCount = count($lines);
         
         // Get BIR readiness status for context (read-only)

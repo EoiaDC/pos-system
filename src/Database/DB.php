@@ -4,18 +4,28 @@ namespace Pos\Database;
 class DB
 {
     private static ?\PDO $connection = null;
+    private static array $config = [];
+    
+    public static function setConfig(array $config): void
+    {
+        self::$config = $config;
+    }
     
     public static function connect(): \PDO
     {
         if (self::$connection === null) {
-            $host = 'localhost';
-            $port = '3307';  // ADD THIS LINE
-            $dbname = 'pos_system';
-            $username = 'root';
-            $password = '';
+            // Load config if not set
+            if (empty(self::$config)) {
+                self::$config = require __DIR__ . '/../../config/database.php';
+            }
+            
+            $host = self::$config['host'];
+            $port = self::$config['port'] ?? '3306';
+            $dbname = self::$config['dbname'];
+            $username = self::$config['user'];
+            $password = self::$config['pass'];
             
             try {
-                // ADD port TO DSN
                 $dsn = "mysql:host=$host;port=$port;charset=utf8mb4";
                 $pdo = new \PDO($dsn, $username, $password);
                 $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
@@ -34,6 +44,23 @@ class DB
         return self::$connection;
     }
     
+    // Update transaction to pass PDO to callback
+public static function transaction(callable $callback)
+{
+    $pdo = self::connect();
+    
+    try {
+        $pdo->beginTransaction();
+        $result = $callback($pdo);  // ✅ Pass PDO to callback
+        $pdo->commit();
+        return $result;
+    } catch (\Exception $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+}
+    
+    // Keep all your other methods exactly the same
     public static function execute(string $sql, array $params = []): bool
     {
         $pdo = self::connect();
@@ -57,19 +84,4 @@ class DB
         $stmt->execute($params);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
-    
-    public static function transaction(callable $callback)
-    {
-        $pdo = self::connect();
-        
-        try {
-            $pdo->beginTransaction();
-            $result = $callback();
-            $pdo->commit();
-            return $result;
-        } catch (\Exception $e) {
-            $pdo->rollBack();
-            throw $e;
-        }
-    }
-}   
+}

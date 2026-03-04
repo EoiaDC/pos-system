@@ -3,7 +3,7 @@
 define('APP_BASE_PATH', '/pos-system/public');
 // Database configuration (temporary – replace with your actual credentials)
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'pos_system');
+define('DB_NAME', 'pos_db');
 define('DB_USER', 'root');
 define('DB_PASS', ''); // XAMPP default is empty
 
@@ -61,6 +61,8 @@ env_load(BASE_PATH . DIRECTORY_SEPARATOR . '.env');
 require_once __DIR__ . '/../src/Core/Request.php';
 require_once __DIR__ . '/../src/Core/Response.php';
 require_once __DIR__ . '/../src/Core/Validator.php';
+require_once __DIR__ . '/../src/Auth/Auth.php';
+require_once __DIR__ . '/../src/Auth/Rbac.php';
 
 $app = require __DIR__ . '/app.php';
 

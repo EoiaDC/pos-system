@@ -2,9 +2,9 @@
 
 namespace POS\Sales;
 
-use POS\Core\Auth;
-use POS\Core\Response;
-use POS\Core\BirReadiness;
+use App\Core\Auth;
+use App\Core\Response;
+use App\Core\BirReadiness;
 
 class SaleStartController
 {
@@ -51,23 +51,15 @@ class SaleStartController
         
         try {
             // Insert draft sale header
-            // Note: Using the exact column names from DEV D's migration
             $sql = "INSERT INTO sales_headers (
                 status, created_by, created_at
-            ) VALUES (?, ?, NOW())";
+            ) VALUES ('DRAFT', ?, NOW())";
             
             $stmt = $db->prepare($sql);
-            $stmt->execute([
-                'DRAFT',
-                Auth::userId()
-            ]);
+            $stmt->execute([Auth::userId()]);
             
             $saleId = $db->lastInsertId();
             
-            // Log audit event (DEV D will handle this in service later)
-            // For now, we can log directly or rely on DEV D's service
-            
-            // Success! Redirect to draft page
             Response::flash('success', 'Draft sale created successfully');
             Response::redirect('/sales/draft?sale_id=' . $saleId);
             

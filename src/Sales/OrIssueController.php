@@ -2,9 +2,9 @@
 
 namespace POS\Sales;
 
-use POS\Core\Auth;
-use POS\Core\Response;
-use POS\Core\OrIssuanceService;
+use App\Core\Auth;
+use App\Core\Response;
+use App\Core\OrIssuanceService;
 
 class OrIssueController
 {

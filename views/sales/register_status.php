@@ -60,7 +60,7 @@
             </ul>
         </div>
         
-        <a href="/sales" class="back-link">← Back to Sales Module</a>
+        <a href="<?= APP_BASE_PATH ?>/sales" class="back-link">← Back to Sales Module</a>
     </div>
 </body>
 </html>

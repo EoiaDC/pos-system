@@ -32,7 +32,7 @@
             <strong>Note:</strong> Reprint permissions will be controlled by <code>sales.view</code> or <code>sales.refund</code> permissions.
         </div>
         
-        <a href="/sales" class="back-link">← Back to Sales Module</a>
+        <a href="<?= APP_BASE_PATH ?>/sales" class="back-link">← Back to Sales Module</a>
     </div>
 </body>
 </html>

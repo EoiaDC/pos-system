@@ -2,9 +2,9 @@
 
 namespace POS\Sales;
 
-use POS\Core\Auth;
-use POS\Core\Response;
-use POS\Core\BirReadiness;
+use App\Core\Auth;
+use App\Core\Response;
+use App\Core\BirReadiness;
 
 class SaleSetupController
 {

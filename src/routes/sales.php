@@ -3,79 +3,100 @@
  * Sales Module Routes
  * 
  * These routes handle all sales-related pages and actions.
- * All routes are protected by authentication and permissions.
+ * @param Router $router The router instance
  */
 
+// Require controller files
+require_once __DIR__ . '/../Sales/SalesHomeController.php';
+require_once __DIR__ . '/../Sales/SaleStartController.php';
+require_once __DIR__ . '/../Sales/SaleDraftController.php';
+require_once __DIR__ . '/../Sales/SalesHistoryController.php';
+require_once __DIR__ . '/../Sales/RegisterStatusController.php';
+require_once __DIR__ . '/../Sales/BirReadinessController.php';
+require_once __DIR__ . '/../Sales/SaleRegisterController.php';
+require_once __DIR__ . '/../Sales/SaleOrSeriesController.php';
+require_once __DIR__ . '/../Sales/SaleLineController.php';
+require_once __DIR__ . '/../Sales/SalePostController.php';
+require_once __DIR__ . '/../Sales/OrIssueController.php';
+require_once __DIR__ . '/../Controllers/Sales/PaymentsController.php';
+
 // Main sales dashboard
-Router::get('/sales', 'POS\Sales\SalesHomeController@index', [
-    'auth' => true,
-    'perm' => 'sales.view'
-]);
+$router->get('/sales', function() {
+    $controller = new POS\Sales\SalesHomeController();
+    $controller->index();
+});
 
 // Start new sale flow
-Router::get('/sales/start', 'POS\Sales\SaleStartController@index', [
-    'auth' => true,
-    'perm' => 'sales.create'
-]);
-Router::post('/sales/start', 'POS\Sales\SaleStartController@create', [
-    'auth' => true,
-    'perm' => 'sales.create'
-]);
+$router->get('/sales/start', function() {
+    $controller = new POS\Sales\SaleStartController();
+    $controller->index();
+});
+
+$router->post('/sales/start', function() {
+    $controller = new POS\Sales\SaleStartController();
+    $controller->create();
+});
 
 // View draft sale
-Router::get('/sales/draft', 'POS\Sales\SaleDraftController@index', [
-    'auth' => true,
-    'perm' => 'sales.view'
-]);
+$router->get('/sales/draft', function() {
+    $controller = new POS\Sales\SaleDraftController();
+    $controller->index();
+});
 
 // Register and OR series selection
-Router::post('/sales/register/update', 'POS\Sales\SaleRegisterController@update', [
-    'auth' => true,
-    'perm' => 'sales.create'
-]);
-Router::post('/sales/or-series/update', 'POS\Sales\SaleOrSeriesController@update', [
-    'auth' => true,
-    'perm' => 'sales.create'
-]);
+$router->post('/sales/register/update', function() {
+    $controller = new POS\Sales\SaleRegisterController();
+    $controller->update();
+});
+
+$router->post('/sales/or-series/update', function() {
+    $controller = new POS\Sales\SaleOrSeriesController();
+    $controller->update();
+});
 
 // Line item management
-Router::post('/sales/line/add', 'POS\Sales\SaleLineController@add', [
-    'auth' => true,
-    'perm' => 'sales.create'
-]);
-Router::post('/sales/line/remove', 'POS\Sales\SaleLineController@remove', [
-    'auth' => true,
-    'perm' => 'sales.create'
-]);
+$router->post('/sales/line/add', function() {
+    $controller = new POS\Sales\SaleLineController();
+    $controller->add();
+});
+
+$router->post('/sales/line/remove', function() {
+    $controller = new POS\Sales\SaleLineController();
+    $controller->remove();
+});
 
 // Post sale
-Router::post('/sales/draft/post', 'POS\Sales\SalePostController@post', [
-    'auth' => true,
-    'perm' => 'sales.create'
-]);
+$router->post('/sales/draft/post', function() {
+    $controller = new POS\Sales\SalePostController();
+    $controller->post();
+});
 
 // OR issuance
-Router::post('/sales/or/issue', 'POS\Sales\OrIssueController@issue', [
-    'auth' => true,
-    'perm' => 'sales.create'
-]);
+$router->post('/sales/or/issue', function() {
+    $controller = new POS\Sales\OrIssueController();
+    $controller->issue();
+});
 
 // Payment routes
-Router::post('/sales/payments/record', 'POS\Controllers\Sales\PaymentsController@record', [
-    'auth' => true,
-    'perm' => 'sales.payments.manage'
-]);
+$router->post('/sales/payments/record', function() {
+    $controller = new POS\Controllers\Sales\PaymentsController();
+    $controller->record();
+});
 
-// Sales history and status pages
-Router::get('/sales/history', 'POS\Sales\SalesHistoryController@index', [
-    'auth' => true,
-    'perm' => 'sales.view'
-]);
-Router::get('/sales/register-status', 'POS\Sales\RegisterStatusController@index', [
-    'auth' => true,
-    'perm' => 'sales.view'
-]);
-Router::get('/sales/bir-readiness', 'POS\Sales\BirReadinessController@index', [
-    'auth' => true,
-    'perm' => 'sales.view'
-]);
+// Sales history
+$router->get('/sales/history', function() {
+    $controller = new POS\Sales\SalesHistoryController();
+    $controller->index();
+});
+
+// Register status
+$router->get('/sales/register-status', function() {
+    $controller = new POS\Sales\RegisterStatusController();
+    $controller->index();
+});
+
+// BIR readiness
+$router->get('/sales/bir-readiness', function() {
+    $controller = new POS\Sales\BirReadinessController();
+    $controller->index();
+});

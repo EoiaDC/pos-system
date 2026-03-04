@@ -17,13 +17,13 @@
     <div class="container">
         <h1>Sales Module</h1>
         <p>Sales/POS screens will be added later.</p>
-        
-    <div class="links">
-      <a href="/sales/start">➕ Start New Sale</a> <span style="color: #6c757d; font-size: 0.9em;">(Creates draft)</span>
-      <a href="/sales/history">📋 Sales History</a> <span style="color: #6c757d; font-size: 0.9em;">(Check history)</span>
-      <a href="/sales/register-status">🪙 Register Status</a> <span style="color: #6c757d; font-size: 0.9em;">(Check status)</span>
-       <a href="/sales/bir-readiness">📋 BIR Readiness</a> <span style="color: #6c757d; font-size: 0.9em;">(Shows BIR requirements )</span>
-    </div>
+
+        <div class="links">
+    <a href="<?= APP_BASE_PATH ?>/sales/start">➕ Start New Sale</a> <span style="color: #6c757d; font-size: 0.9em;">(Creates draft)</span>
+    <a href="<?= APP_BASE_PATH ?>/sales/history">📋 Sales History</a> <span style="color: #6c757d; font-size: 0.9em;">(Check history)</span>
+    <a href="<?= APP_BASE_PATH ?>/sales/register-status">🪙 Register Status</a> <span style="color: #6c757d; font-size: 0.9em;">(Check status)</span>
+    <a href="<?= APP_BASE_PATH ?>/sales/bir-readiness">📋 BIR Readiness</a> <span style="color: #6c757d; font-size: 0.9em;">(Shows BIR requirements)</span>
+</div>
         
         <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
             <em>Note: Links will work after routing is configured by DEV D.</em>
