@@ -18,10 +18,18 @@ class PaymentsController
             return;
         }
         
+        // Check permission (using DEV D's permission)
+        if (!Auth::hasPermission('sales.payments.record')) {
+            Response::flash('error', 'You do not have permission to record payments');
+            Response::redirect('/sales/draft?sale_id=' . ($_POST['sale_id'] ?? ''));
+            return;
+        }
+        
         // Get and validate inputs
         $saleId = $_POST['sale_id'] ?? '';
         $amount = $_POST['amount'] ?? '';
-        $paidAt = $_POST['paid_at'] ?? date('Y-m-d H:i:s');
+        $paymentDate = $_POST['payment_date'] ?? $_POST['paid_at'] ?? date('Y-m-d H:i:s');
+        $referenceNo = $_POST['reference_no'] ?? null;
         $notes = $_POST['notes'] ?? '';
         
         if (!is_numeric($saleId) || $saleId <= 0) {
@@ -70,7 +78,7 @@ class PaymentsController
                 return;
             }
             
-            // Calculate current paid total and balance
+            // Calculate current paid total and balance using our new table structure
             $stmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as paid_total FROM payments WHERE sale_id = ?");
             $stmt->execute([$saleId]);
             $paidTotal = $stmt->fetch(\PDO::FETCH_ASSOC)['paid_total'];
@@ -86,16 +94,17 @@ class PaymentsController
                 return;
             }
             
-            // Insert payment
+            // Insert payment with correct column names
             $stmt = $db->prepare("
                 INSERT INTO payments 
-                (sale_id, method, amount, paid_at, notes, created_by, created_at)
-                VALUES (?, 'CASH', ?, ?, ?, ?, NOW())
+                (sale_id, payment_method, amount, payment_date, reference_no, notes, created_by, created_at)
+                VALUES (?, 'CASH', ?, ?, ?, ?, ?, NOW())
             ");
             $stmt->execute([
                 $saleId,
                 $amount,
-                $paidAt,
+                $paymentDate,
+                $referenceNo,
                 $notes ?: null,
                 Auth::userId()
             ]);
@@ -108,9 +117,10 @@ class PaymentsController
             $metadata = json_encode([
                 'sale_id' => $saleId,
                 'payment_id' => $paymentId,
-                'method' => 'CASH',
+                'payment_method' => 'CASH',
                 'amount' => $amount,
-                'paid_at' => $paidAt,
+                'payment_date' => $paymentDate,
+                'reference_no' => $referenceNo,
                 'notes' => $notes,
                 'balance_after' => $balance - $amount
             ]);
@@ -132,13 +142,14 @@ class PaymentsController
             
             $db->commit();
             
-            Response::flash('success', 'Payment of ₱' . number_format($amount, 2) . ' recorded');
+            Response::flash('success', 'Payment of ₱' . number_format($amount, 2) . ' recorded. ' . 
+                          ($balance - $amount <= 0 ? 'Sale is now fully paid!' : ''));
             Response::redirect('/sales/draft?sale_id=' . $saleId);
             
         } catch (\Exception $e) {
             $db->rollBack();
             error_log("PaymentsController::record error: " . $e->getMessage());
-            Response::flash('error', 'Failed to record payment');
+            Response::flash('error', 'Failed to record payment: ' . $e->getMessage());
             Response::redirect('/sales/draft?sale_id=' . $saleId);
         }
     }

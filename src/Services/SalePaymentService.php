@@ -140,8 +140,8 @@ class SalePaymentService
             throw new \Exception('Cannot add payment to finalized sale');
         }
         
-        // Must be POSTED (not DRAFT)
-        if ($sale['status'] !== 'POSTED') {
+        // Must be POSTED (not DRAFT) - case insensitive
+        if (strtoupper($sale['status']) !== 'POSTED') {
             throw new \Exception('Sale must be POSTED to add payments (current status: ' . $sale['status'] . ')');
         }
         

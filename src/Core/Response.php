@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Core;
 
 class Response
@@ -14,7 +13,7 @@ class Response
             $basePath = defined('APP_BASE_PATH') ? APP_BASE_PATH : '/pos-system';
             $to = $basePath . $to;
         }
-        
+
         header('Location: ' . $to);
         exit;
     }
@@ -49,10 +48,10 @@ class Response
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        
+
         $msg = $_SESSION['_flash'][$key] ?? null;
         unset($_SESSION['_flash'][$key]);
-        
+
         return $msg;
     }
 }

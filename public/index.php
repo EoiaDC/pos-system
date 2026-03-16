@@ -1,7 +1,11 @@
 <?php
 // Load bootstrap
-require __DIR__ . '/../config/bootstrap.php';
-require __DIR__ . '/../src/Core/Router.php';
+require __DIR__ . '/../src/config/bootstrap.php';
+
+// Define base path
+if (!defined('APP_BASE_PATH')) {
+    define('APP_BASE_PATH', '/pos-system/public');
+}
 
 use App\Core\Router;
 
@@ -19,118 +23,89 @@ $router->post('/login', function() {
     // For testing, accept any login
     $_SESSION['user'] = ['id' => 1, 'username' => 'admin'];
     
-    header('Location: /pos-system/public/sales');
+    header('Location: ' . APP_BASE_PATH . '/sales');
     exit;
 });
 
 // ========== SALES ROUTES ==========
 
-// Sales home
 $router->get('/sales', function() {
-    require_once __DIR__ . '/../src/Sales/SalesHomeController.php';
     $controller = new POS\Sales\SalesHomeController();
     $controller->index();
 });
 
-// Sales history
 $router->get('/sales/history', function() {
-    require_once __DIR__ . '/../src/Sales/SalesHistoryController.php';
     $controller = new POS\Sales\SalesHistoryController();
     $controller->index();
 });
 
-
-// Register status
 $router->get('/sales/register-status', function() {
-    require_once __DIR__ . '/../src/Sales/RegisterStatusController.php';
     $controller = new POS\Sales\RegisterStatusController();
     $controller->index();
 });
 
-// BIR readiness
 $router->get('/sales/bir-readiness', function() {
-    require_once __DIR__ . '/../src/Sales/BirReadinessController.php';
     $controller = new POS\Sales\BirReadinessController();
     $controller->index();
 });
 
-// START NEW SALE - GET (show form)
 $router->get('/sales/start', function() {
-    require_once __DIR__ . '/../src/Sales/SaleStartController.php';
     $controller = new POS\Sales\SaleStartController();
     $controller->index();
 });
 
-// START NEW SALE - POST (process form)
 $router->post('/sales/start', function() {
-    require_once __DIR__ . '/../src/Sales/SaleStartController.php';
     $controller = new POS\Sales\SaleStartController();
     $controller->create();
 });
 
-// Draft sale
 $router->get('/sales/draft', function() {
-    require_once __DIR__ . '/../src/Sales/SaleDraftController.php';
     $controller = new POS\Sales\SaleDraftController();
     $controller->index();
 });
 
-// Register update
 $router->post('/sales/register/update', function() {
-    require_once __DIR__ . '/../src/Sales/SaleRegisterController.php';
     $controller = new POS\Sales\SaleRegisterController();
     $controller->update();
 });
 
-// OR series update
 $router->post('/sales/or-series/update', function() {
-    require_once __DIR__ . '/../src/Sales/SaleOrSeriesController.php';
     $controller = new POS\Sales\SaleOrSeriesController();
     $controller->update();
 });
 
-// Line add
 $router->post('/sales/line/add', function() {
-    require_once __DIR__ . '/../src/Sales/SaleLineController.php';
     $controller = new POS\Sales\SaleLineController();
     $controller->add();
 });
 
-// Line remove
 $router->post('/sales/line/remove', function() {
-    require_once __DIR__ . '/../src/Sales/SaleLineController.php';
     $controller = new POS\Sales\SaleLineController();
     $controller->remove();
 });
 
-// Post sale
 $router->post('/sales/draft/post', function() {
-    require_once __DIR__ . '/../src/Sales/SalePostController.php';
     $controller = new POS\Sales\SalePostController();
     $controller->post();
 });
 
-// OR issue
 $router->post('/sales/or/issue', function() {
-    require_once __DIR__ . '/../src/Sales/OrIssueController.php';
     $controller = new POS\Sales\OrIssueController();
     $controller->issue();
 });
 
-// Payment record
 $router->post('/sales/payments/record', function() {
-    require_once __DIR__ . '/../src/Controllers/Sales/PaymentsController.php';
     $controller = new POS\Controllers\Sales\PaymentsController();
     $controller->record();
 });
 
 // Root redirect
 $router->get('/', function() {
-    header('Location: /pos-system/public/sales');
+    header('Location: ' . APP_BASE_PATH . '/sales');
     exit;
 });
 
-// ========== TEMPORARY ADMIN SETUP PAGES ==========
+// ========== ADMIN SETUP PAGES ==========
 
 // Company Profile - GET
 $router->get('/admin/company-profile', function() {
@@ -153,7 +128,7 @@ $router->get('/admin/company-profile', function() {
     echo "<p>Address: <input type='text' name='address' required></p>";
     echo "<p><button type='submit'>Save</button></p>";
     echo "</form>";
-    echo "<p><a href='/pos-system/public/admin/registers'>Next: Create Register →</a></p>";
+    echo "<p><a href='" . APP_BASE_PATH . "/admin/registers'>Next: Create Register →</a></p>";
 });
 
 // Company Profile - POST
@@ -173,7 +148,7 @@ $router->post('/admin/company-profile', function() {
     $stmt = $db->prepare("INSERT INTO company_profile (registered_name, tin, address, created_at) VALUES (?, ?, ?, NOW())");
     $stmt->execute([$name, $tin, $address]);
     
-    header('Location: /pos-system/public/admin/company-profile?success=1');
+    header('Location: ' . APP_BASE_PATH . '/admin/company-profile?success=1');
     exit;
 });
 
@@ -197,7 +172,7 @@ $router->get('/admin/registers', function() {
     echo "<p>Register Name: <input type='text' name='register_name' value='Main Register' required></p>";
     echo "<p><button type='submit'>Create Register</button></p>";
     echo "</form>";
-    echo "<p><a href='/pos-system/public/admin/or-series'>Next: Create OR Series →</a></p>";
+    echo "<p><a href='" . APP_BASE_PATH . "/admin/or-series'>Next: Create OR Series →</a></p>";
 });
 
 // Registers - POST
@@ -215,7 +190,7 @@ $router->post('/admin/registers', function() {
     $stmt = $db->prepare("INSERT INTO pos_registers (register_code, machine_name, is_active, created_at) VALUES (?, ?, 1, NOW())");
     $stmt->execute([$code, $name]);
     
-    header('Location: /pos-system/public/admin/registers?success=1');
+    header('Location: ' . APP_BASE_PATH . '/admin/registers?success=1');
     exit;
 });
 
@@ -238,7 +213,7 @@ $router->get('/admin/or-series', function() {
     }
     if (!$regId) {
         echo "<p style='color:red'>❌ Create a register first!</p>";
-        echo "<p><a href='/pos-system/public/admin/registers'>Go to Registers</a></p>";
+        echo "<p><a href='" . APP_BASE_PATH . "/admin/registers'>Go to Registers</a></p>";
     } else {
         echo "<form method='POST'>";
         echo "<p>Series Code: <input type='text' name='series_code' value='OR-2024' required></p>";
@@ -247,7 +222,7 @@ $router->get('/admin/or-series', function() {
         echo "<p><button type='submit'>Create OR Series</button></p>";
         echo "</form>";
     }
-    echo "<p><a href='/pos-system/public/sales/start'>Done! Start Sale →</a></p>";
+    echo "<p><a href='" . APP_BASE_PATH . "/sales/start'>Done! Start Sale →</a></p>";
 });
 
 // OR Series - POST
@@ -267,7 +242,7 @@ $router->post('/admin/or-series', function() {
     $stmt = $db->prepare("INSERT INTO or_series (register_id, series_code, start_no, end_no, current_no, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, NOW())");
     $stmt->execute([$regId, $code, $start, $end, $start]);
     
-    header('Location: /pos-system/public/admin/or-series?success=1');
+    header('Location: ' . APP_BASE_PATH . '/admin/or-series?success=1');
     exit;
 });
 
@@ -275,29 +250,36 @@ $router->post('/admin/or-series', function() {
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $uri = $_SERVER['REQUEST_URI'] ?? '/';
-$base = defined('APP_BASE_PATH') ? APP_BASE_PATH : '/pos-system/public';
+$base = APP_BASE_PATH;
 
+// Calculate path without base
 $path = parse_url($uri, PHP_URL_PATH) ?: '/';
-if (str_starts_with($path, $base)) {
+if (strpos($path, $base) === 0) {
     $path = substr($path, strlen($base));
-    if ($path === '' || $path === false) {
-        $path = '/';
-    }
+}
+if (empty($path)) {
+    $path = '/';
 }
 
-// DEBUG OUTPUT (now after $path is defined)
+// DEBUG OUTPUT
 echo "<h1>Router Debug</h1>";
-echo "<pre>";
-echo "REQUEST_URI: " . $_SERVER['REQUEST_URI'] . "\n";
-echo "Base path: " . $base . "\n";
-echo "Calculated path: " . $path . "\n";
-echo "Method: " . $method . "\n";
-echo "</pre>";
+echo "<div style='background: #f0f0f0; padding: 15px; margin: 20px; border-radius: 5px; font-family: monospace;'>";
+echo "<strong>REQUEST_URI:</strong> " . htmlspecialchars($_SERVER['REQUEST_URI']) . "<br>";
+echo "<strong>Base path:</strong> " . htmlspecialchars($base) . "<br>";
+echo "<strong>Calculated path:</strong> " . htmlspecialchars($path) . "<br>";
+echo "<strong>Method:</strong> " . htmlspecialchars($method) . "<br>";
+echo "<strong>Routes loaded:</strong> " . (isset($router) ? 'Yes' : 'No') . "<br>";
+echo "</div>";
 
+// Dispatch the request
 $response = $router->dispatch($method, $path);
+
 if ($response === false) {
     http_response_code(404);
-    echo "404 - Page not found";
+    echo "<div style='background: #f8d7da; padding: 15px; margin: 20px; border-radius: 5px; color: #721c24;'>";
+    echo "<strong>404 - Page Not Found</strong><br>";
+    echo "No route matched for: " . htmlspecialchars($method) . " " . htmlspecialchars($path);
+    echo "</div>";
 } else {
     echo $response;
 }

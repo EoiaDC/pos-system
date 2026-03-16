@@ -43,6 +43,13 @@
         <h1>📄 Draft Sale</h1>
         
         <?php
+        // Get payment totals early for use throughout the page
+        if (!isset($paymentTotals) && isset($sale['id'])) {
+            require_once __DIR__ . '/../../src/Services/SalePaymentTotalsService.php';
+            $totalsService = new POS\Services\SalePaymentTotalsService();
+            $paymentTotals = $totalsService->getSaleTotals($sale['id']);
+        }
+        
         // Display flash messages if any
         if (class_exists('\\POS\\Core\\Response')) {
             $successFlash = \POS\Core\Response::getFlash('success');
@@ -85,24 +92,24 @@
                     </div>
                     <div class="info-item">
                         <div class="info-label">POS Register ID</div>
-                        <div class="info-value"><?= $sale['pos_register_id'] ? htmlspecialchars($sale['pos_register_id']) : '<em>(not selected)</em>' ?></div>
+                        <div class="info-value"><?= isset($sale['pos_register_id']) && $sale['pos_register_id'] ? htmlspecialchars($sale['pos_register_id']) : '<em>(not selected)</em>' ?></div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">OR Series ID</div>
-                        <div class="info-value"><?= $sale['or_series_id'] ? htmlspecialchars($sale['or_series_id']) : '<em>(not selected)</em>' ?></div>
+                        <div class="info-value"><?= isset($sale['or_series_id']) && $sale['or_series_id'] ? htmlspecialchars($sale['or_series_id']) : '<em>(not selected)</em>' ?></div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">OR Number</div>
-                        <div class="info-value"><?= $sale['or_no'] ? htmlspecialchars($sale['or_no']) : '<em>(not reserved)</em>' ?></div>
+                        <div class="info-value"><?= isset($sale['or_no']) && $sale['or_no'] ? htmlspecialchars($sale['or_no']) : '<em>(not reserved)</em>' ?></div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Line Items</div>
-                        <div class="info-value">(not yet implemented)</div>
+                        <div class="info-value"><?= isset($lineCount) ? $lineCount : 0 ?> item(s)</div>
                     </div>
                 </div>
             </div>
 
-            <!-- NEW: Register and OR Series Selection Forms -->
+            <!-- Register and OR Series Selection Forms -->
             <?php if ($sale['status'] === 'DRAFT'): ?>
             <div class="selection-forms">
                 <!-- Register Selection Form -->
@@ -195,7 +202,8 @@
                     </div>
                 <?php endif; ?>
             </div>
-                        <!-- Audit Trail Section -->
+            
+            <!-- Audit Trail Section -->
             <div style="background: #f8f9fa; border: 1px solid #ddd; padding: 15px; margin: 20px 0; border-radius: 5px;">
                 <strong>📋 Audit Trail</strong>
                 <?php
@@ -230,12 +238,10 @@
                                     <td style="padding: 8px;">
                                         <?php
                                         $action = $log['action'];
-                                        $badgeColor = match($action) {
-                                            'sale.started' => '#28a745',
-                                            'sale.register.selected' => '#007bff',
-                                            'sale.or_series.selected' => '#007bff',
-                                            default => '#6c757d'
-                                        };
+                                        $badgeColor = '#6c757d';
+                                        if ($action === 'sale.started') $badgeColor = '#28a745';
+                                        elseif ($action === 'sale.register.selected') $badgeColor = '#007bff';
+                                        elseif ($action === 'sale.or_series.selected') $badgeColor = '#007bff';
                                         ?>
                                         <span style="background: <?= $badgeColor ?>; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.85em;">
                                             <?= htmlspecialchars($action) ?>
@@ -266,7 +272,7 @@
                 ?>
             </div>
             
-                        <!-- Line Items Section -->
+            <!-- Line Items Section -->
             <div style="background: #f8f9fa; border: 1px solid #ddd; padding: 15px; margin: 20px 0; border-radius: 5px;">
                 <strong>🛒 Line Items</strong>
                 
@@ -298,11 +304,11 @@
                             <tbody>
                                 <?php foreach ($lines as $line): ?>
                                 <tr style="border-bottom: 1px solid #dee2e6;">
-                                    <td style="padding: 8px;"><?= htmlspecialchars($line['description']) ?></td>
-                                    <td style="padding: 8px; text-align: right;"><?= number_format($line['qty'], 2) ?></td>
-                                    <td style="padding: 8px; text-align: right;">₱<?= number_format($line['unit_price'], 2) ?></td>
+                                    <td style="padding: 8px;"><?= htmlspecialchars($line['description'] ?? $line['item_name'] ?? 'Item') ?></td>
+                                    <td style="padding: 8px; text-align: right;"><?= number_format($line['qty'] ?? 0, 2) ?></td>
+                                    <td style="padding: 8px; text-align: right;">₱<?= number_format($line['unit_price'] ?? 0, 2) ?></td>
                                     <td style="padding: 8px; text-align: right;">₱<?= number_format($line['line_discount'] ?? 0, 2) ?></td>
-                                    <td style="padding: 8px; text-align: right;">₱<?= number_format($line['line_total'], 2) ?></td>
+                                    <td style="padding: 8px; text-align: right;">₱<?= number_format($line['line_total'] ?? 0, 2) ?></td>
                                     <td style="padding: 8px; text-align: center;">
                                         <form method="POST" action="/sales/line/remove" style="display: inline;">
                                             <input type="hidden" name="line_id" value="<?= $line['id'] ?>">
@@ -315,12 +321,12 @@
                             </tbody>
                             <tfoot>
                                 <tr style="font-weight: bold; background: #f8f9fa;">
-                                    <td colspan="3" style="padding: 8px; text-align: right;">Subtotal:</td>
+                                    <td colspan="4" style="padding: 8px; text-align: right;">Subtotal:</td>
                                     <td style="padding: 8px; text-align: right;">₱<?= number_format($sale['subtotal'] ?? 0, 2) ?></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-weight: bold; background: #f8f9fa;">
-                                    <td colspan="3" style="padding: 8px; text-align: right;">Total:</td>
+                                    <td colspan="4" style="padding: 8px; text-align: right;">Total:</td>
                                     <td style="padding: 8px; text-align: right;">₱<?= number_format($sale['grand_total'] ?? 0, 2) ?></td>
                                     <td></td>
                                 </tr>
@@ -331,7 +337,154 @@
                     echo "<p style='color: #dc3545;'>Error loading line items.</p>";
                 }
                 ?>
-                            <!-- Post Sale Section -->
+            </div>
+
+            <!-- ========== PAYMENTS SECTION ========== -->
+            <?php
+            // Get payment history
+            if (!isset($payments)) {
+                $stmt = $db->prepare("
+                    SELECT p.*, u.username 
+                    FROM payments p
+                    LEFT JOIN users u ON p.created_by = u.id
+                    WHERE p.sale_id = ?
+                    ORDER BY p.created_at DESC
+                ");
+                $stmt->execute([$sale['id']]);
+                $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+            ?>
+            
+            <div style="background: #f8f9fa; border: 1px solid #ddd; padding: 15px; margin: 20px 0; border-radius: 5px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <strong style="font-size: 1.2em;">💰 Payments</strong>
+                    <span style="background: #007bff; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.9em;">
+                        Paid: ₱<?= number_format($paymentTotals['total_paid'] ?? 0, 2) ?>
+                    </span>
+                </div>
+                
+                <!-- Payment Summary Cards -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                    <div style="background: white; padding: 15px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="color: #6c757d; font-size: 0.9em;">Total Amount</div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: #28a745;">₱<?= number_format($paymentTotals['total_amount'] ?? 0, 2) ?></div>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="color: #6c757d; font-size: 0.9em;">Total Paid</div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: #007bff;">₱<?= number_format($paymentTotals['total_paid'] ?? 0, 2) ?></div>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="color: #6c757d; font-size: 0.9em;">Balance</div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: <?= ($paymentTotals['balance'] ?? 0) > 0 ? '#dc3545' : '#28a745' ?>;">
+                            ₱<?= number_format($paymentTotals['balance'] ?? 0, 2) ?>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment History Table -->
+                <?php if (!empty($payments)): ?>
+                    <div style="margin-bottom: 20px;">
+                        <table style="width: 100%; border-collapse: collapse; background: white;">
+                            <thead>
+                                <tr style="background: #e9ecef;">
+                                    <th style="padding: 8px; text-align: left;">Date/Time</th>
+                                    <th style="padding: 8px; text-align: left;">Method</th>
+                                    <th style="padding: 8px; text-align: right;">Amount</th>
+                                    <th style="padding: 8px; text-align: left;">Reference</th>
+                                    <th style="padding: 8px; text-align: left;">Encoded By</th>
+                                    <th style="padding: 8px; text-align: left;">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($payments as $payment): ?>
+                                <tr style="border-bottom: 1px solid #dee2e6;">
+                                    <td style="padding: 8px;"><?= date('Y-m-d H:i', strtotime($payment['payment_date'])) ?></td>
+                                    <td style="padding: 8px;">
+                                        <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.85em;">
+                                            <?= htmlspecialchars($payment['payment_method']) ?>
+                                        </span>
+                                    </td>
+                                    <td style="padding: 8px; text-align: right; font-weight: bold;">₱<?= number_format($payment['amount'], 2) ?></td>
+                                    <td style="padding: 8px;"><?= htmlspecialchars($payment['reference_no'] ?? '—') ?></td>
+                                    <td style="padding: 8px;"><?= htmlspecialchars($payment['username'] ?? 'System') ?></td>
+                                    <td style="padding: 8px;"><?= htmlspecialchars($payment['notes'] ?? '') ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php else: ?>
+                    <p style="color: #6c757d; margin: 20px 0; text-align: center;">No payments recorded yet.</p>
+                <?php endif; ?>
+                
+                <!-- Add Payment Form (only for POSTED sales that are not fully paid) -->
+                <?php if ($sale['status'] === 'POSTED' && !($paymentTotals['is_fully_paid'] ?? false)): ?>
+                <div style="background: #e7f3ff; border: 1px solid #b8daff; padding: 20px; border-radius: 5px;">
+                    <strong style="display: block; margin-bottom: 15px;">➕ Record New Payment</strong>
+                    
+                    <form method="POST" action="<?= APP_BASE_PATH ?>/sales/payments/record">
+                        <input type="hidden" name="sale_id" value="<?= $sale['id'] ?>">
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Amount (₱):</label>
+                                <input type="number" name="amount" step="0.01" min="0.01" max="<?= $paymentTotals['balance'] ?? 0 ?>" 
+                                    value="<?= $paymentTotals['balance'] ?? 0 ?>" required
+                                    style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
+                                <small style="color: #6c757d;">Max: ₱<?= number_format($paymentTotals['balance'] ?? 0, 2) ?></small>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Payment Method:</label>
+                                <select name="payment_method" required style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
+                                    <option value="CASH">Cash</option>
+                                    <option value="GCASH" disabled>GCash (Coming Soon)</option>
+                                    <option value="CARD" disabled>Credit Card (Coming Soon)</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Payment Date:</label>
+                                <input type="datetime-local" name="payment_date" value="<?= date('Y-m-d\TH:i') ?>" required
+                                    style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Reference No:</label>
+                                <input type="text" name="reference_no" placeholder="e.g., Cash payment"
+                                    style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
+                            </div>
+                            
+                            <div style="grid-column: 1 / -1;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Notes:</label>
+                                <textarea name="notes" rows="2" placeholder="Optional notes..." 
+                                        style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                                💵 Record Payment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <?php elseif ($sale['status'] === 'POSTED' && ($paymentTotals['is_fully_paid'] ?? false)): ?>
+                <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; text-align: center;">
+                    <strong style="color: #155724;">✅ Sale is fully paid! Ready to finalize.</strong>
+                </div>
+                <?php elseif ($sale['status'] === 'DRAFT'): ?>
+                <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 5px; text-align: center;">
+                    <strong style="color: #856404;">📝 Post the sale first to record payments.</strong>
+                </div>
+                <?php elseif ($sale['status'] === 'FINALIZED'): ?>
+                <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; text-align: center;">
+                    <strong style="color: #721c24;">🔒 Finalized sales cannot accept payments.</strong>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Post Sale Section -->
             <?php if ($sale['status'] === 'DRAFT'): ?>
             <div style="background: #e7f3ff; border-left: 4px solid #007bff; padding: 15px; margin: 20px 0; border-radius: 3px;">
                 <strong>📋 Pre-Posting Checklist</strong>
@@ -344,20 +497,20 @@
                     </div>
                     <div>
                         <span class="info-label">Line Items:</span>
-                        <span class="<?= ($lineCount ?? 0) > 0 ? 'bir-ok' : 'bir-not-ok' ?>">
-                            <?= ($lineCount ?? 0) > 0 ? '✅ ' . $lineCount . ' items' : '❌ No items' ?>
+                        <span class="<?= (isset($lineCount) && $lineCount > 0) ? 'bir-ok' : 'bir-not-ok' ?>">
+                            <?= (isset($lineCount) && $lineCount > 0) ? '✅ ' . $lineCount . ' items' : '❌ No items' ?>
                         </span>
                     </div>
                     <div>
                         <span class="info-label">Register Selected:</span>
-                        <span class="<?= $sale['pos_register_id'] ? 'bir-ok' : 'bir-not-ok' ?>">
-                            <?= $sale['pos_register_id'] ? '✅ Yes' : '❌ No' ?>
+                        <span class="<?= isset($sale['pos_register_id']) && $sale['pos_register_id'] ? 'bir-ok' : 'bir-not-ok' ?>">
+                            <?= isset($sale['pos_register_id']) && $sale['pos_register_id'] ? '✅ Yes' : '❌ No' ?>
                         </span>
                     </div>
                     <div>
                         <span class="info-label">OR Series Selected:</span>
-                        <span class="<?= $sale['or_series_id'] ? 'bir-ok' : 'bir-not-ok' ?>">
-                            <?= $sale['or_series_id'] ? '✅ Yes' : '❌ No' ?>
+                        <span class="<?= isset($sale['or_series_id']) && $sale['or_series_id'] ? 'bir-ok' : 'bir-not-ok' ?>">
+                            <?= isset($sale['or_series_id']) && $sale['or_series_id'] ? '✅ Yes' : '❌ No' ?>
                         </span>
                     </div>
                     <div>
@@ -376,14 +529,15 @@
                     <em>Posting locks this sale from further edits. No OR will be issued yet.</em>
                 </p>
             </div>
-            <?php else: ?>
+            <?php elseif ($sale['status'] !== 'DRAFT'): ?>
             <!-- Sale is locked message -->
             <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 3px;">
                 <strong>🔒 Sale Locked</strong>
                 <p style="margin-top: 10px;">This sale is <strong><?= htmlspecialchars($sale['status']) ?></strong> and cannot be modified.</p>
             </div>
             <?php endif; ?>
-                            <!-- OR Issuance Section -->
+            
+            <!-- OR Issuance Section -->
             <?php if ($sale['status'] === 'POSTED'): ?>
                 <?php if (empty($sale['or_no'])): ?>
                 <div style="background: #e7f3ff; border-left: 4px solid #007bff; padding: 15px; margin: 20px 0; border-radius: 3px;">
@@ -424,8 +578,10 @@
                     <p style="margin-top: 10px;">Post the sale first before issuing an OR number.</p>
                 </div>
             <?php endif; ?>
-                <!-- Add Item Form with Dropdown and Discount -->
-                <?php if ($sale['status'] === 'DRAFT'): ?>
+            
+            <!-- Add Item Form -->
+            <?php if ($sale['status'] === 'DRAFT'): ?>
+                <?php if (isset($itemsList) && !empty($itemsList)): ?>
                 <div style="margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 5px;">
                     <strong>➕ Add Item</strong>
                     <form method="POST" action="/sales/line/add" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
@@ -439,7 +595,6 @@
                                         data-name="<?= htmlspecialchars($item['item_name']) ?>">
                                     <?= htmlspecialchars($item['item_code'] ?? '') ?> - 
                                     <?= htmlspecialchars($item['item_name']) ?> 
-                                    (ID:<?= $item['id'] ?>) 
                                     ₱<?= number_format($item['selling_price'], 2) ?>
                                 </option>
                             <?php endforeach; ?>
@@ -458,18 +613,15 @@
                         </button>
                     </form>
                     
-                    <!-- Validation hint -->
                     <p style="color: #6c757d; font-size: 0.9em; margin-top: 10px;">
                         <em>Note: Discount cannot exceed item subtotal.</em>
                     </p>
                     
-                    <!-- Price preview -->
                     <div id="selected-item-price" style="font-size: 0.9em; color: #6c757d;">
                         Selected item price will appear here
                     </div>
                     
                     <script>
-                    // Simple price preview when item selected
                     document.querySelector('select[name="item_id"]').addEventListener('change', function(e) {
                         const selected = e.target.options[e.target.selectedIndex];
                         const priceDiv = document.getElementById('selected-item-price');
@@ -484,8 +636,9 @@
                     </script>
                 </div>
                 <?php endif; ?>
+            <?php endif; ?>
 
-            <!-- Coming Soon Section (EXISTING) -->
+            <!-- Coming Soon Section -->
             <div class="placeholder-note">
                 <strong>📌 Coming Soon (Day 3):</strong>
                 <ul>
