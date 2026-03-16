@@ -470,8 +470,22 @@
                     </form>
                 </div>
                 <?php elseif ($sale['status'] === 'POSTED' && ($paymentTotals['is_fully_paid'] ?? false)): ?>
-                <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; text-align: center;">
-                    <strong style="color: #155724;">✅ Sale is fully paid! Ready to finalize.</strong>
+                <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 20px; border-radius: 5px; text-align: center;">
+                    <div style="margin-bottom: 15px;">
+                        <strong style="color: #155724; font-size: 1.2em;">✅ Sale is fully paid!</strong>
+                    </div>
+                    
+                    <form method="POST" action="<?= APP_BASE_PATH ?>/sales/finalize">
+                        <input type="hidden" name="sale_id" value="<?= $sale['id'] ?>">
+                        <button type="submit" 
+                                style="background: #28a745; color: white; border: none; padding: 12px 30px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1.1em;"
+                                onclick="return confirm('Are you sure you want to finalize this sale? This action cannot be undone.');">
+                            🔒 Finalize Sale
+                        </button>
+                    </form>
+                    <p style="color: #6c757d; font-size: 0.9em; margin-top: 10px;">
+                        <em>Finalizing will lock the sale from any further changes.</em>
+                    </p>
                 </div>
                 <?php elseif ($sale['status'] === 'DRAFT'): ?>
                 <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 5px; text-align: center;">
@@ -533,7 +547,7 @@
             <!-- Sale is locked message -->
             <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 3px;">
                 <strong>🔒 Sale Locked</strong>
-                <p style="margin-top: 10px;">This sale is <strong><?= htmlspecialchars($sale['status']) ?></strong> and cannot be modified.</p>
+                <p style="margin-top: 10px;">This sale is <strong><?= htmlspecialchars($sale['status'] ?? 'FINALIZED') ?></strong> and cannot be modified.</p>
             </div>
             <?php endif; ?>
             

@@ -108,7 +108,7 @@ $router->post('/sales/payments/record', function() {
     $controller->record();
 });
 
-// Finalize route with DEV D's permission check (will be implemented in Step 7)
+// Finalize route with DEV D's permission check - UPDATED WITH REAL CONTROLLER
 $router->post('/sales/finalize', function() {
     // Permission check from DEV D
     if (!Auth::check() || !Auth::hasPermission('sales.finalize')) {
@@ -116,8 +116,9 @@ $router->post('/sales/finalize', function() {
         require __DIR__ . '/../views/errors/403.php';
         exit;
     }
-    // TODO: Implement FinalizeController in Step 7
-    echo "Finalize route ready – controller will be implemented in Step 7.";
+    // Your actual controller from Step 7
+    $controller = new POS\Controllers\Sales\FinalizeController();
+    $controller->finalize();
 });
 
 // Root redirect
