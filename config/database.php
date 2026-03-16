@@ -47,7 +47,7 @@ if (!function_exists('env')) {
 return [
     'host'    => env('DB_HOST', 'localhost'),
     'port'    => env('DB_PORT', '3306'),
-    'dbname'  => env('DB_DATABASE', 'pos_db'),
+    'dbname'  => env('DB_DATABASE', 'pos_system'),
     'user'    => env('DB_USERNAME', 'root'),
     'pass'    => env('DB_PASSWORD', ''),
     'charset' => env('DB_CHARSET', 'utf8mb4')

@@ -3,7 +3,7 @@
 define('APP_BASE_PATH', '/pos-system/public');
 // Database configuration (temporary – replace with your actual credentials)
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'pos_db');
+define('DB_NAME', 'pos_system');
 define('DB_USER', 'root');
 define('DB_PASS', ''); // XAMPP default is empty
 

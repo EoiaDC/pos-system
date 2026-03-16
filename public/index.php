@@ -8,6 +8,7 @@ if (!defined('APP_BASE_PATH')) {
 }
 
 use App\Core\Router;
+use App\Core\Auth;
 
 $router = new Router();
 
@@ -94,9 +95,29 @@ $router->post('/sales/or/issue', function() {
     $controller->issue();
 });
 
+// Payment route with DEV D's permission check
 $router->post('/sales/payments/record', function() {
+    // Permission check from DEV D
+    if (!Auth::check() || !Auth::hasPermission('sales.payments.record')) {
+        http_response_code(403);
+        require __DIR__ . '/../views/errors/403.php';
+        exit;
+    }
+    // Your actual controller
     $controller = new POS\Controllers\Sales\PaymentsController();
     $controller->record();
+});
+
+// Finalize route with DEV D's permission check (will be implemented in Step 7)
+$router->post('/sales/finalize', function() {
+    // Permission check from DEV D
+    if (!Auth::check() || !Auth::hasPermission('sales.finalize')) {
+        http_response_code(403);
+        require __DIR__ . '/../views/errors/403.php';
+        exit;
+    }
+    // TODO: Implement FinalizeController in Step 7
+    echo "Finalize route ready – controller will be implemented in Step 7.";
 });
 
 // Root redirect
