@@ -71,8 +71,15 @@ class PaymentsController
                 return;
             }
             
-            // Check if sale is POSTED
-            if ($sale['status'] !== 'POSTED') {
+            // 🔒 LOCK ENFORCEMENT: Check if sale is FINALIZED
+            if (strtoupper($sale['status']) === 'FINALIZED') {
+                Response::flash('error', 'Cannot add payment to a finalized sale');
+                Response::redirect('/sales/draft?sale_id=' . $saleId);
+                return;
+            }
+            
+            // Check if sale is POSTED (case insensitive)
+            if (strtoupper($sale['status']) !== 'POSTED') {
                 Response::flash('error', 'Payments can only be recorded for POSTED sales');
                 Response::redirect('/sales/draft?sale_id=' . $saleId);
                 return;
@@ -142,8 +149,12 @@ class PaymentsController
             
             $db->commit();
             
-            Response::flash('success', 'Payment of ₱' . number_format($amount, 2) . ' recorded. ' . 
-                          ($balance - $amount <= 0 ? 'Sale is now fully paid!' : ''));
+            $message = 'Payment of ₱' . number_format($amount, 2) . ' recorded. ';
+            if ($balance - $amount <= 0) {
+                $message .= 'Sale is now fully paid!';
+            }
+            
+            Response::flash('success', $message);
             Response::redirect('/sales/draft?sale_id=' . $saleId);
             
         } catch (\Exception $e) {

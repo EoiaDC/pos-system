@@ -67,8 +67,22 @@ class SaleLineController
             $stmt->execute([$saleId]);
             $sale = $stmt->fetch(\PDO::FETCH_ASSOC);
             
-            if (!$sale || $sale['status'] !== 'DRAFT') {
-                Response::flash('error', 'Sale not found or not in DRAFT status');
+            if (!$sale) {
+                Response::flash('error', 'Sale not found');
+                Response::redirect('/sales/draft?sale_id=' . $saleId);
+                return;
+            }
+            
+            // 🔒 LOCK ENFORCEMENT: Check if sale is FINALIZED
+            if (strtoupper($sale['status']) === 'FINALIZED') {
+                Response::flash('error', 'Cannot add items to a finalized sale');
+                Response::redirect('/sales/draft?sale_id=' . $saleId);
+                return;
+            }
+            
+            // Check if sale is DRAFT (can only add items to DRAFT)
+            if ($sale['status'] !== 'DRAFT') {
+                Response::flash('error', 'Items can only be added to DRAFT sales');
                 Response::redirect('/sales/draft?sale_id=' . $saleId);
                 return;
             }
@@ -198,13 +212,27 @@ class SaleLineController
         try {
             $db->beginTransaction();
             
-            // Verify sale exists and is DRAFT
+            // Verify sale exists
             $stmt = $db->prepare("SELECT status FROM sales_headers WHERE id = ?");
             $stmt->execute([$saleId]);
             $sale = $stmt->fetch(\PDO::FETCH_ASSOC);
             
-            if (!$sale || $sale['status'] !== 'DRAFT') {
-                Response::flash('error', 'Sale not found or not in DRAFT status');
+            if (!$sale) {
+                Response::flash('error', 'Sale not found');
+                Response::redirect('/sales/draft?sale_id=' . $saleId);
+                return;
+            }
+            
+            // 🔒 LOCK ENFORCEMENT: Check if sale is FINALIZED
+            if (strtoupper($sale['status']) === 'FINALIZED') {
+                Response::flash('error', 'Cannot remove items from a finalized sale');
+                Response::redirect('/sales/draft?sale_id=' . $saleId);
+                return;
+            }
+            
+            // Check if sale is DRAFT (can only remove items from DRAFT)
+            if ($sale['status'] !== 'DRAFT') {
+                Response::flash('error', 'Items can only be removed from DRAFT sales');
                 Response::redirect('/sales/draft?sale_id=' . $saleId);
                 return;
             }
