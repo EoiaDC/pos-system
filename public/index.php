@@ -130,6 +130,33 @@ $router->get('/', function() {
     exit;
 });
 
+// //Payment Store
+// $router->post('/sales/payment/store', [\POS\Sales\SalesPaymentController::class, 'store'], ['auth' => true]);
+// $router->post('/sales/finalize', [\POS\Sales\SaleFinalizationController::class, 'finalize'], ['auth' => true]);
+
+// $router->post('/sales/payment/store', [\POS\Sales\SalesPaymentController::class, 'store'], ['auth' => true, 'perm' => 'sales.payments.record']);
+// $router->post('/sales/finalize', [\POS\Sales\SaleFinalizationController::class, 'finalize'], ['auth' => true, 'perm' => 'sales.finalize']);
+
+//Placeholder for Payment
+$router->post('/sales/payment/store', function() {
+    if (!Auth::check() || !Auth::hasPermission('sales.payments.record')) {
+        http_response_code(403);
+        require __DIR__ . '/../views/errors/403.php';
+        exit;
+    }
+    echo "Payment recording placeholder – controller not yet implemented.";
+}, ['auth' => true, 'perm' => 'sales.payments.record']);
+
+//Placeholder for Finalization
+$router->post('/sales/finalize', function() {
+    if (!Auth::check() || !Auth::hasPermission('sales.finalize')) {
+        http_response_code(403);
+        require __DIR__ . '/../views/errors/403.php';
+        exit;
+    }
+    echo "Finalize placeholder – controller not yet implemented.";
+}, ['auth' => true, 'perm' => 'sales.finalize']);
+
 // ========== TEMPORARY ADMIN SETUP PAGES ==========
 
 // Company Profile - GET
