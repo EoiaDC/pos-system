@@ -7,12 +7,12 @@ return new class
         // Insert bir.readiness.view permission
         $stmt = $db->prepare("INSERT IGNORE INTO permissions (code, label) VALUES (?, ?)");
         $stmt->execute(['bir.readiness.view', 'View BIR Readiness']);
-        
+
         // Get admin role ID
-        $stmt = $db->prepare("SELECT id FROM roles WHERE name = ?");
+        $stmt = $db->prepare("SELECT id FROM permissions WHERE code = ?");
         $stmt->execute(['admin']);
         $adminRoleId = $stmt->fetchColumn();
-        
+
         if ($adminRoleId) {
             // Assign to admin role
             $stmt = $db->prepare("

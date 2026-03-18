@@ -8,18 +8,18 @@ return new class
             ['sales.payments.view', 'View Payments'],
             ['sales.payments.manage', 'Manage Payments']
         ];
-        
+
         // Insert payment permissions if they don't exist
         foreach ($paymentPermissions as [$code, $label]) {
             $stmt = $db->prepare("INSERT IGNORE INTO permissions (code, label) VALUES (?, ?)");
             $stmt->execute([$code, $label]);
         }
-        
+
         // Get admin role ID
-        $stmt = $db->prepare("SELECT id FROM roles WHERE name = ?");
+        $stmt = $db->prepare("SELECT id FROM permissions WHERE code = ?");
         $stmt->execute(['admin']);
         $adminRoleId = $stmt->fetchColumn();
-        
+
         if ($adminRoleId) {
             // Assign payment permissions to admin role
             foreach ($paymentPermissions as [$code, $label]) {
